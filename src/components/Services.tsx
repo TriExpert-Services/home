@@ -15,6 +15,11 @@ const Services = () => {
     }
   };
 
+  const handleTranslationFormClick = () => {
+    // This will be handled by the parent component
+    window.dispatchEvent(new CustomEvent('showTranslationForm'));
+  };
+
   const handleServiceInquiry = (serviceTitle: string) => {
     // Scroll to contact form and pre-select the service
     scrollToContact();
@@ -153,7 +158,13 @@ const Services = () => {
                 </ul>
                 
                 <button 
-                  onClick={() => handleServiceInquiry(service.title)}
+                  onClick={() => {
+                    if (service.title === t('services.translations.title')) {
+                      handleTranslationFormClick();
+                    } else {
+                      handleServiceInquiry(service.title);
+                    }
+                  }}
                   className={`group/btn w-full bg-gradient-to-r ${service.color} text-white py-3 px-6 rounded-xl font-semibold hover:shadow-lg transform hover:scale-105 transition-all duration-200 flex items-center justify-center space-x-2`}
                 >
                   <span>{t('services.learnMore')}</span>
