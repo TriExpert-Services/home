@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ArrowLeft, User, Globe, Upload, Clock, FileText, Calendar, CreditCard, Loader2, CheckCircle, AlertCircle } from 'lucide-react';
+import { ArrowLeft, User, Globe, Upload, Clock, FileText, Calendar, CreditCard, Loader2, CheckCircle, AlertCircle, Zap } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useLanguage } from '../contexts/LanguageContext';
 
@@ -43,6 +43,7 @@ const TranslationForm = ({ onBack }: { onBack: () => void }) => {
   const [errors, setErrors] = useState<FormErrors>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
+  const [isWaitingPayment, setIsWaitingPayment] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
 
   const languages = [
@@ -186,28 +187,49 @@ const TranslationForm = ({ onBack }: { onBack: () => void }) => {
     const webhookUrl = import.meta.env.VITE_N8N_WEBHOOK_URL;
     
     if (!webhookUrl) {
-      console.error('N8N webhook URL not configured');
-      return;
+      throw new Error('N8N webhook URL not configured');
     }
 
-    try {
-      const response = await fetch(webhookUrl, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(requestData)
-      });
+    const response = await fetch(webhookUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(requestData)
+    });
 
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      console.log('Successfully sent to N8N webhook');
-    } catch (error) {
-      console.error('Error sending to N8N webhook:', error);
-      // Don't throw here to avoid breaking the user flow
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
     }
+
+    const responseData = await response.json();
+    return responseData;
+  };
+
+  const waitForPaymentLink = async (requestData: any): Promise<string | null> => {
+    return new Promise((resolve) => {
+      const timeout = setTimeout(() => {
+        resolve(null); // Timeout after 20 seconds
+      }, 20000);
+
+      sendToN8N(requestData)
+        .then((response) => {
+          clearTimeout(timeout);
+          // Expect response to have payment_url or similar field
+          const paymentUrl = response?.payment_url || response?.paymentUrl || response?.stripe_url;
+          resolve(paymentUrl || null);
+        })
+        .catch((error) => {
+          clearTimeout(timeout);
+          console.error('Error getting payment link:', error);
+          resolve(null);
+        });
+    });
+  };
+
+  const redirectToStripe = (paymentUrl: string) => {
+    // Redirect to Stripe payment page
+    window.location.href = paymentUrl;
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -263,20 +285,35 @@ const TranslationForm = ({ onBack }: { onBack: () => void }) => {
         throw new Error(`Database error: ${error.message}`);
       }
 
-      // Send to N8N webhook
-      await sendToN8N({
+      // Prepare data for N8N
+      const n8nData = {
         ...requestData,
         request_id: data.id,
         created_at: data.created_at
-      });
+      };
+
+      // Show payment waiting screen
+      setIsSubmitting(false);
+      setIsWaitingPayment(true);
+
+      // Wait for payment link from N8N
+      const paymentUrl = await waitForPaymentLink(n8nData);
+
+      setIsWaitingPayment(false);
+
+      if (paymentUrl) {
+        // Redirect to Stripe payment
+        redirectToStripe(paymentUrl);
+      } else {
+        // Show success message if no payment link received
+        setIsSubmitted(true);
+      }
 
       // Show upload warning if files failed to upload
       if (uploadWarning) {
         console.warn(uploadWarning);
       }
 
-      setIsSubmitted(true);
-      
       // Reset form
       setFormData({
         fullName: '',
@@ -315,6 +352,66 @@ const TranslationForm = ({ onBack }: { onBack: () => void }) => {
       setErrors({ ...errors, [name]: '' });
     }
   };
+
+  // Waiting for payment component
+  if (isWaitingPayment) {
+    return (
+      <div className="min-h-screen bg-slate-900 py-20 px-6">
+        <div className="container mx-auto max-w-2xl">
+          <div className="bg-slate-800 rounded-3xl p-12 text-center">
+            {/* Animated payment processing icon */}
+            <div className="relative mb-8">
+              <div className="w-20 h-20 bg-gradient-to-r from-purple-500 to-indigo-600 rounded-full flex items-center justify-center mx-auto animate-pulse">
+                <CreditCard className="w-10 h-10 text-white" />
+              </div>
+              <div className="absolute inset-0 w-20 h-20 mx-auto">
+                <div className="w-full h-full border-4 border-purple-200 border-t-purple-500 rounded-full animate-spin"></div>
+              </div>
+            </div>
+
+            <h2 className="text-3xl font-bold text-white mb-4">
+              {language === 'es' ? 'Procesando tu Solicitud' : 'Processing Your Request'}
+            </h2>
+            
+            <div className="space-y-4 mb-8">
+              <div className="flex items-center justify-center text-purple-300">
+                <Zap className="w-5 h-5 mr-2 animate-bounce" />
+                <span className="text-lg">
+                  {language === 'es' 
+                    ? 'Generando enlace de pago seguro...' 
+                    : 'Generating secure payment link...'
+                  }
+                </span>
+              </div>
+              
+              <div className="flex justify-center space-x-2">
+                <div className="w-3 h-3 bg-purple-400 rounded-full animate-bounce"></div>
+                <div className="w-3 h-3 bg-indigo-400 rounded-full animate-bounce delay-100"></div>
+                <div className="w-3 h-3 bg-blue-400 rounded-full animate-bounce delay-200"></div>
+              </div>
+            </div>
+
+            <div className="bg-purple-500/10 border border-purple-500/20 rounded-xl p-4 mb-6">
+              <div className="flex items-center justify-center text-purple-300 text-sm">
+                <Clock className="w-4 h-4 mr-2" />
+                {language === 'es' 
+                  ? 'Este proceso puede tomar hasta 20 segundos' 
+                  : 'This process may take up to 20 seconds'
+                }
+              </div>
+            </div>
+
+            <p className="text-slate-400 text-sm">
+              {language === 'es' 
+                ? 'Serás redirigido automáticamente a la página de pago de Stripe' 
+                : 'You will be automatically redirected to the Stripe payment page'
+              }
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   if (isSubmitted) {
     return (
