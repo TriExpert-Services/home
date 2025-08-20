@@ -7,14 +7,75 @@ const Hero = () => {
 
   return (
     <section id="inicio" className="relative min-h-screen flex items-center overflow-hidden">
-      {/* Background with gradient */}
-      <div className="absolute inset-0 bg-gradient-to-br from-blue-900 via-indigo-900 to-purple-900"></div>
+      {/* Tech-inspired background */}
+      <div className="absolute inset-0 bg-slate-900"></div>
       
-      {/* Animated background elements */}
-      <div className="absolute inset-0 overflow-hidden">
-        <div className="absolute -top-40 -right-40 w-80 h-80 bg-blue-500/20 rounded-full blur-3xl animate-pulse"></div>
-        <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-indigo-500/20 rounded-full blur-3xl animate-pulse delay-1000"></div>
-        <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-purple-500/10 rounded-full blur-3xl animate-pulse delay-500"></div>
+      {/* Circuit pattern overlay */}
+      <div className="absolute inset-0 opacity-20">
+        <div className="absolute inset-0" style={{
+          backgroundImage: `
+            linear-gradient(90deg, rgba(59, 130, 246, 0.1) 1px, transparent 1px),
+            linear-gradient(rgba(59, 130, 246, 0.1) 1px, transparent 1px)
+          `,
+          backgroundSize: '60px 60px'
+        }}></div>
+      </div>
+      
+      {/* Floating tech elements */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        {/* Connection nodes */}
+        <div className="absolute top-20 left-20 w-2 h-2 bg-blue-400 rounded-full animate-pulse"></div>
+        <div className="absolute top-32 left-40 w-1 h-1 bg-indigo-400 rounded-full animate-pulse delay-1000"></div>
+        <div className="absolute top-40 right-32 w-1.5 h-1.5 bg-cyan-400 rounded-full animate-pulse delay-500"></div>
+        <div className="absolute bottom-40 left-24 w-1 h-1 bg-blue-300 rounded-full animate-pulse delay-700"></div>
+        <div className="absolute bottom-32 right-40 w-2 h-2 bg-indigo-300 rounded-full animate-pulse delay-300"></div>
+        
+        {/* Connection lines */}
+        <svg className="absolute top-20 left-20 w-96 h-96 opacity-30" viewBox="0 0 400 400">
+          <path d="M20 20 L180 160 L320 80 L200 240" stroke="url(#gradient1)" strokeWidth="1" fill="none" strokeDasharray="4,4">
+            <animate attributeName="stroke-dashoffset" values="0;8" dur="2s" repeatCount="indefinite"/>
+          </path>
+          <path d="M80 320 L240 180 L360 280" stroke="url(#gradient2)" strokeWidth="1" fill="none" strokeDasharray="4,4">
+            <animate attributeName="stroke-dashoffset" values="8;0" dur="3s" repeatCount="indefinite"/>
+          </path>
+          <defs>
+            <linearGradient id="gradient1" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stopColor="#3b82f6"/>
+              <stop offset="100%" stopColor="#6366f1"/>
+            </linearGradient>
+            <linearGradient id="gradient2" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stopColor="#06b6d4"/>
+              <stop offset="100%" stopColor="#3b82f6"/>
+            </linearGradient>
+          </defs>
+        </svg>
+        
+        {/* Data blocks */}
+        <div className="absolute top-60 right-20 opacity-20">
+          <div className="grid grid-cols-3 gap-1">
+            <div className="w-2 h-2 bg-blue-400 animate-pulse delay-100"></div>
+            <div className="w-2 h-2 bg-indigo-400 animate-pulse delay-300"></div>
+            <div className="w-2 h-2 bg-cyan-400 animate-pulse delay-500"></div>
+            <div className="w-2 h-2 bg-blue-300 animate-pulse delay-700"></div>
+            <div className="w-2 h-2 bg-indigo-300 animate-pulse delay-900"></div>
+            <div className="w-2 h-2 bg-cyan-300 animate-pulse delay-1100"></div>
+          </div>
+        </div>
+        
+        {/* Server racks representation */}
+        <div className="absolute bottom-20 left-1/4 opacity-10">
+          <div className="flex space-x-1">
+            <div className="w-4 h-16 bg-gradient-to-t from-blue-600 to-blue-400 rounded-sm animate-pulse"></div>
+            <div className="w-4 h-12 bg-gradient-to-t from-indigo-600 to-indigo-400 rounded-sm animate-pulse delay-500"></div>
+            <div className="w-4 h-14 bg-gradient-to-t from-cyan-600 to-cyan-400 rounded-sm animate-pulse delay-1000"></div>
+          </div>
+        </div>
+      </div>
+      
+      {/* Subtle glow effects */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        <div className="absolute top-1/4 right-1/4 w-96 h-96 bg-blue-500/5 rounded-full blur-3xl"></div>
+        <div className="absolute bottom-1/4 left-1/4 w-96 h-96 bg-indigo-500/5 rounded-full blur-3xl"></div>
       </div>
 
       <div className="container mx-auto px-6 relative z-10">
