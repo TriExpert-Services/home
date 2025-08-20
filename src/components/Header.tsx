@@ -59,6 +59,7 @@ const Header = () => {
     }
     ${activeSection === section ? 'after:absolute after:bottom-0 after:left-0 after:w-full after:h-0.5 after:bg-current after:transform after:scale-x-100' : 'after:absolute after:bottom-0 after:left-0 after:w-full after:h-0.5 after:bg-current after:transform after:scale-x-0 hover:after:scale-x-100 after:transition-transform after:duration-300'}
   `;
+  
   return (
     <header className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
       isScrolled ? 'bg-white/90 backdrop-blur-md shadow-lg' : 'bg-transparent'
@@ -182,6 +183,8 @@ const Header = () => {
               className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 text-white px-6 py-2 rounded-lg font-medium flex items-center justify-center space-x-2"
             >
               <Phone className="w-4 h-4" />
+              <span>{t('header.cotizar')}</span>
+            </button>
           </div>
         )}
       </div>
