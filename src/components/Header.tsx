@@ -186,8 +186,6 @@ const Header = () => {
               <Phone className="w-4 h-4" />
               <span>{t('header.cotizar')}</span>
             </button>
-              {t('header.cotizar')}
-            </button>
           </div>
         )}
       </div>

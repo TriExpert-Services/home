@@ -176,8 +176,6 @@ const Services = () => {
           <p className="text-slate-400 mt-4 text-sm">
             Need a custom solution? Our experts are ready to help you find the perfect fit.
           </p>
-            {t('services.viewAll')}
-          </button>
         </div>
       </div>
     </section>
