@@ -7,30 +7,35 @@ const Hero = () => {
 
   return (
     <section id="inicio" className="relative min-h-screen flex items-center overflow-hidden">
-      {/* Clean gradient background */}
-      <div className="absolute inset-0 bg-gradient-to-br from-slate-900 via-blue-900/20 to-indigo-900/30"></div>
-      
-      {/* Subtle tech grid */}
-      <div className="absolute inset-0 opacity-30" style={{
-        backgroundImage: `
-          radial-gradient(circle at 2px 2px, rgba(59, 130, 246, 0.15) 1px, transparent 0),
-          linear-gradient(90deg, rgba(59, 130, 246, 0.1) 1px, transparent 1px),
-          linear-gradient(rgba(59, 130, 246, 0.1) 1px, transparent 1px)
-        `,
-        backgroundSize: '60px 60px, 60px 60px, 60px 60px'
-      }}></div>
-      
-      {/* Simple floating elements */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-20 right-20 w-2 h-2 bg-blue-400 rounded-full animate-pulse opacity-60"></div>
-        <div className="absolute bottom-20 left-20 w-2 h-2 bg-indigo-400 rounded-full animate-pulse opacity-50 delay-1000"></div>
-        <div className="absolute top-1/2 right-1/3 w-1 h-1 bg-cyan-400 rounded-full animate-pulse opacity-40 delay-2000"></div>
+      {/* Technology background image */}
+      <div className="absolute inset-0">
+        <img 
+          src="https://images.pexels.com/photos/325229/pexels-photo-325229.jpeg" 
+          alt="Technology background" 
+          className="w-full h-full object-cover"
+        />
+        <div className="absolute inset-0 bg-slate-900/70"></div>
       </div>
       
-      {/* Subtle glow effects */}
+      {/* Subtle tech overlay */}
+      <div className="absolute inset-0 opacity-30" style={{
+        backgroundImage: `
+          radial-gradient(circle at 2px 2px, rgba(59, 130, 246, 0.1) 1px, transparent 0)
+        `,
+        backgroundSize: '40px 40px'
+      }}></div>
+      
+      {/* Floating tech elements */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-1/4 right-1/4 w-96 h-96 bg-blue-500/5 rounded-full blur-3xl"></div>
-        <div className="absolute bottom-1/4 left-1/4 w-96 h-96 bg-indigo-500/5 rounded-full blur-3xl"></div>
+        <div className="absolute top-20 right-20 w-2 h-2 bg-blue-400 rounded-full animate-pulse opacity-70"></div>
+        <div className="absolute bottom-20 left-20 w-2 h-2 bg-indigo-400 rounded-full animate-pulse opacity-60 delay-1000"></div>
+        <div className="absolute top-1/2 right-1/3 w-1 h-1 bg-cyan-400 rounded-full animate-pulse opacity-50 delay-2000"></div>
+      </div>
+      
+      {/* Enhanced glow effects */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        <div className="absolute top-1/4 right-1/4 w-96 h-96 bg-blue-500/10 rounded-full blur-3xl"></div>
+        <div className="absolute bottom-1/4 left-1/4 w-96 h-96 bg-indigo-500/10 rounded-full blur-3xl"></div>
       </div>
 
       <div className="container mx-auto px-6 relative z-10">
