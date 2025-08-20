@@ -6,16 +6,18 @@ const Hero = () => {
   const { t } = useLanguage();
 
   return (
-    <section id="inicio" className="relative min-h-screen flex items-center overflow-hidden">
-      {/* Technology background image */}
-      <div className="absolute inset-0">
-        <img 
-          src="https://images.pexels.com/photos/325229/pexels-photo-325229.jpeg" 
-          alt="Technology background" 
-          className="w-full h-full object-cover"
-        />
-        <div className="absolute inset-0 bg-slate-900/70"></div>
-      </div>
+    <section 
+      id="inicio" 
+      className="relative min-h-screen flex items-center overflow-hidden"
+      style={{
+        backgroundImage: 'url(https://images.pexels.com/photos/325229/pexels-photo-325229.jpeg)',
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
+        backgroundRepeat: 'no-repeat'
+      }}
+    >
+      {/* Dark overlay */}
+      <div className="absolute inset-0 bg-slate-900/70"></div>
       
       {/* Subtle tech overlay */}
       <div className="absolute inset-0 opacity-30" style={{
