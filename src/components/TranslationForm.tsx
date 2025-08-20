@@ -146,29 +146,40 @@ const TranslationForm = ({ onBack }: { onBack: () => void }) => {
   const uploadFiles = async (): Promise<string[]> => {
     if (!formData.files || formData.files.length === 0) return [];
 
-    const fileUrls: string[] = [];
-    
-    for (let i = 0; i < formData.files.length; i++) {
-      const file = formData.files[i];
-      const fileName = `${Date.now()}_${file.name}`;
+    try {
+      const fileUrls: string[] = [];
       
-      const { data, error } = await supabase.storage
-        .from('translation-files')
-        .upload(fileName, file);
+      for (let i = 0; i < formData.files.length; i++) {
+        const file = formData.files[i];
+        const fileName = `${Date.now()}_${file.name}`;
+        
+        try {
+          const { data, error } = await supabase.storage
+            .from('translation-files')
+            .upload(fileName, file);
 
-      if (error) {
-        console.error('Error uploading file:', error);
-        throw new Error(`Error uploading ${file.name}`);
+          if (error) {
+            console.error('Error uploading file:', error);
+            throw new Error(`Error uploading ${file.name}: ${error.message}`);
+          }
+
+          const { data: publicUrl } = supabase.storage
+            .from('translation-files')
+            .getPublicUrl(fileName);
+
+          fileUrls.push(publicUrl.publicUrl);
+        } catch (fileError) {
+          console.error(`Failed to upload ${file.name}:`, fileError);
+          // Continue with other files, don't fail the entire upload
+        }
       }
 
-      const { data: publicUrl } = supabase.storage
-        .from('translation-files')
-        .getPublicUrl(fileName);
-
-      fileUrls.push(publicUrl.publicUrl);
+      return fileUrls;
+    } catch (error) {
+      console.error('File upload failed:', error);
+      // Return empty array to continue with form submission
+      return [];
     }
-
-    return fileUrls;
   };
 
   const sendToN8N = async (requestData: any) => {
@@ -211,7 +222,17 @@ const TranslationForm = ({ onBack }: { onBack: () => void }) => {
 
     try {
       // Upload files first
-      const fileUrls = await uploadFiles();
+      let fileUrls: string[] = [];
+      let uploadWarning = '';
+      
+      try {
+        fileUrls = await uploadFiles();
+      } catch (uploadError) {
+        console.error('File upload failed:', uploadError);
+        uploadWarning = language === 'es' 
+          ? 'Los archivos no pudieron subirse, pero su solicitud fue enviada. Contacte con nosotros para enviar los archivos.'
+          : 'Files could not be uploaded, but your request was submitted. Please contact us to send the files.';
+      }
       
       // Prepare data for database
       const requestData = {
@@ -248,6 +269,11 @@ const TranslationForm = ({ onBack }: { onBack: () => void }) => {
         request_id: data.id,
         created_at: data.created_at
       });
+
+      // Show upload warning if files failed to upload
+      if (uploadWarning) {
+        console.warn(uploadWarning);
+      }
 
       setIsSubmitted(true);
       
