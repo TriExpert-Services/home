@@ -119,8 +119,6 @@ const Header = () => {
               <Phone className="w-4 h-4 group-hover:animate-pulse" />
               <span>{t('header.cotizar')}</span>
             </button>
-              {t('header.cotizar')}
-            </button>
           </nav>
 
           <button 
@@ -184,8 +182,6 @@ const Header = () => {
               className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 text-white px-6 py-2 rounded-lg font-medium flex items-center justify-center space-x-2"
             >
               <Phone className="w-4 h-4" />
-              <span>{t('header.cotizar')}</span>
-            </button>
           </div>
         )}
       </div>
