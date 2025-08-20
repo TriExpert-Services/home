@@ -1,9 +1,19 @@
 import React from 'react';
-import { Target, Users, Award, TrendingUp } from 'lucide-react';
+import { Target, Users, Award, TrendingUp, ArrowRight, CheckCircle2 } from 'lucide-react';
 import { useLanguage } from '../contexts/LanguageContext';
 
 const About = () => {
   const { t } = useLanguage();
+
+  const scrollToContact = () => {
+    const element = document.getElementById('contacto');
+    if (element) {
+      element.scrollIntoView({ 
+        behavior: 'smooth',
+        block: 'start'
+      });
+    }
+  };
 
   const stats = [
     { icon: <Users className="w-6 h-6" />, number: "500+", label: t('about.projects') },
@@ -32,25 +42,30 @@ const About = () => {
             </p>
             
             <div className="space-y-4 mb-8">
-              <div className="flex items-center space-x-3">
-                <div className="w-2 h-2 bg-indigo-600 rounded-full"></div>
+              <div className="flex items-start space-x-3 group hover:bg-slate-700/30 p-3 rounded-xl transition-colors">
+                <CheckCircle2 className="w-5 h-5 text-indigo-400 mt-0.5 group-hover:scale-110 transition-transform" />
                 <span className="text-slate-300">{t('about.feature1')}</span>
               </div>
-              <div className="flex items-center space-x-3">
-                <div className="w-2 h-2 bg-indigo-600 rounded-full"></div>
+              <div className="flex items-start space-x-3 group hover:bg-slate-700/30 p-3 rounded-xl transition-colors">
+                <CheckCircle2 className="w-5 h-5 text-indigo-400 mt-0.5 group-hover:scale-110 transition-transform" />
                 <span className="text-slate-300">{t('about.feature2')}</span>
               </div>
-              <div className="flex items-center space-x-3">
-                <div className="w-2 h-2 bg-indigo-600 rounded-full"></div>
+              <div className="flex items-start space-x-3 group hover:bg-slate-700/30 p-3 rounded-xl transition-colors">
+                <CheckCircle2 className="w-5 h-5 text-indigo-400 mt-0.5 group-hover:scale-110 transition-transform" />
                 <span className="text-slate-300">{t('about.feature3')}</span>
               </div>
-              <div className="flex items-center space-x-3">
-                <div className="w-2 h-2 bg-indigo-600 rounded-full"></div>
+              <div className="flex items-start space-x-3 group hover:bg-slate-700/30 p-3 rounded-xl transition-colors">
+                <CheckCircle2 className="w-5 h-5 text-indigo-400 mt-0.5 group-hover:scale-110 transition-transform" />
                 <span className="text-slate-300">{t('about.feature4')}</span>
               </div>
             </div>
             
-            <button className="bg-gradient-to-r from-indigo-600 to-purple-600 text-white px-8 py-4 rounded-xl font-semibold hover:from-indigo-700 hover:to-purple-700 transform hover:scale-105 transition-all duration-300 shadow-lg">
+            <button 
+              onClick={scrollToContact}
+              className="group bg-gradient-to-r from-indigo-600 to-purple-600 text-white px-8 py-4 rounded-xl font-semibold hover:from-indigo-700 hover:to-purple-700 transform hover:scale-105 transition-all duration-300 shadow-lg flex items-center space-x-2"
+            >
+              <span>{t('about.learnMore')}</span>
+              <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
               {t('about.learnMore')}
             </button>
           </div>
