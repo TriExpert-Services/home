@@ -407,6 +407,15 @@ const AdminPanel = () => {
                               <p className="text-white">{request.document_type.replace('_', ' ')}</p>
                               <p className="text-slate-400 text-sm">{request.page_count} pages</p>
                               <p className="text-slate-400 text-sm">{request.desired_format}</p>
+                              
+                              {/* Original Files Count */}
+                              {request.file_urls && request.file_urls.length > 0 && (
+                                <div className="flex items-center space-x-1 mt-1">
+                                  <FileText className="w-3 h-3 text-orange-400" />
+                                  <span className="text-orange-400 text-xs">{request.file_urls.length} original files</span>
+                                </div>
+                              )}
+                              
                               {/* Quality Score */}
                               {request.quality_score && (
                                 <div className="flex items-center space-x-1 mt-1">

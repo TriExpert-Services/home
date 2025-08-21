@@ -19,6 +19,8 @@ const DocumentManagement: React.FC<DocumentManagementProps> = ({
   const [verificationLink, setVerificationLink] = useState(requestData.verification_link || '');
   const [linkCopied, setLinkCopied] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const translatedFiles = requestData.translated_file_urls || [];
+  const originalFiles = requestData.file_urls || [];
 
   const uploadTranslatedDocuments = async (files: FileList) => {
     if (!files.length) return;
@@ -129,21 +131,79 @@ const DocumentManagement: React.FC<DocumentManagementProps> = ({
     document.body.removeChild(link);
   };
 
-  const translatedFiles = requestData.translated_file_urls || [];
 
   return (
     <div className="space-y-6">
+      {/* Original Client Documents Section */}
+      <div className="bg-slate-700/50 rounded-xl p-6">
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-lg font-semibold text-white flex items-center">
+            <FileText className="w-5 h-5 mr-2 text-orange-400" />
+            Client's Original Documents
+          </h3>
+          <span className={`px-3 py-1 rounded-full text-xs font-semibold ${
+            originalFiles.length > 0 ? 'bg-blue-500/20 text-blue-300' : 'bg-gray-500/20 text-gray-300'
+          }`}>
+            {originalFiles.length} original files
+          </span>
+        </div>
+
+        {originalFiles.length > 0 ? (
+          <div className="space-y-2">
+            <h4 className="text-white font-medium">Documents to Translate:</h4>
+            {originalFiles.map((url, index) => {
+              const fileName = url.split('/').pop() || `original_file_${index + 1}`;
+              const cleanFileName = fileName.replace(/^\d+_/, ''); // Remove timestamp prefix
+              
+              return (
+                <div key={index} className="flex items-center justify-between bg-slate-600/50 rounded-lg p-3 border-l-4 border-orange-400">
+                  <div className="flex items-center space-x-3">
+                    <FileText className="w-5 h-5 text-orange-400" />
+                    <div>
+                      <span className="text-white text-sm font-medium">{cleanFileName}</span>
+                      <p className="text-slate-400 text-xs">Original document from client</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <button
+                      onClick={() => window.open(url, '_blank')}
+                      className="text-orange-400 hover:text-orange-300 transition-colors bg-orange-500/20 p-2 rounded-lg hover:bg-orange-500/30"
+                      title="View original file"
+                    >
+                      <Eye className="w-4 h-4" />
+                    </button>
+                    <button
+                      onClick={() => downloadFile(url, cleanFileName)}
+                      className="text-blue-400 hover:text-blue-300 transition-colors bg-blue-500/20 p-2 rounded-lg hover:bg-blue-500/30"
+                      title="Download original file"
+                    >
+                      <Download className="w-4 h-4" />
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        ) : (
+          <div className="text-center py-6 bg-slate-600/30 rounded-lg border-2 border-dashed border-slate-600">
+            <FileText className="w-8 h-8 text-slate-400 mx-auto mb-2" />
+            <p className="text-slate-400">No original documents uploaded by client</p>
+            <p className="text-slate-500 text-sm">Client may have submitted request without files</p>
+          </div>
+        )}
+      </div>
+
       {/* Upload Section */}
       <div className="bg-slate-700/50 rounded-xl p-6">
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-lg font-semibold text-white flex items-center">
-            <Upload className="w-5 h-5 mr-2 text-blue-400" />
-            Upload Translated Documents
+            <Upload className="w-5 h-5 mr-2 text-green-400" />
+            Upload Your Translated Documents
           </h3>
           <span className={`px-3 py-1 rounded-full text-xs font-semibold ${
             requestData.status === 'completed' ? 'bg-green-500/20 text-green-300' : 'bg-yellow-500/20 text-yellow-300'
           }`}>
-            {translatedFiles.length} files uploaded
+            {translatedFiles.length} translated files uploaded
           </span>
         </div>
 
@@ -162,37 +222,42 @@ const DocumentManagement: React.FC<DocumentManagementProps> = ({
             disabled={isUploading}
             className="w-full border-2 border-dashed border-slate-600 hover:border-blue-500 rounded-xl p-6 text-center transition-colors disabled:opacity-50"
           >
-            <Upload className="w-8 h-8 text-blue-400 mx-auto mb-2" />
+            <Upload className="w-8 h-8 text-green-400 mx-auto mb-2" />
             <p className="text-white mb-1">
               {isUploading ? 'Uploading...' : 'Click to upload translated documents'}
             </p>
-            <p className="text-slate-400 text-sm">Support: PDF, Word, Images, TXT</p>
+            <p className="text-slate-400 text-sm">Upload your completed translations (PDF, Word, Images, TXT)</p>
           </button>
 
           {/* Uploaded Files List */}
           {translatedFiles.length > 0 && (
             <div className="space-y-2">
-              <h4 className="text-white font-medium">Uploaded Files:</h4>
+              <h4 className="text-white font-medium">Your Translated Files:</h4>
               {translatedFiles.map((url, index) => {
                 const fileName = url.split('/').pop() || `file_${index + 1}`;
+                const cleanFileName = fileName.replace(`translated_${requestId}_`, '').replace(/^\d+_/, '');
+                
                 return (
-                  <div key={index} className="flex items-center justify-between bg-slate-600/50 rounded-lg p-3">
+                  <div key={index} className="flex items-center justify-between bg-slate-600/50 rounded-lg p-3 border-l-4 border-green-400">
                     <div className="flex items-center space-x-3">
-                      <FileText className="w-5 h-5 text-blue-400" />
-                      <span className="text-white text-sm">{fileName}</span>
+                      <FileText className="w-5 h-5 text-green-400" />
+                      <div>
+                        <span className="text-white text-sm font-medium">{cleanFileName}</span>
+                        <p className="text-slate-400 text-xs">Translated document</p>
+                      </div>
                     </div>
                     <div className="flex items-center space-x-2">
                       <button
                         onClick={() => window.open(url, '_blank')}
-                        className="text-blue-400 hover:text-blue-300 transition-colors"
-                        title="View file"
+                        className="text-green-400 hover:text-green-300 transition-colors bg-green-500/20 p-2 rounded-lg hover:bg-green-500/30"
+                        title="View translated file"
                       >
                         <Eye className="w-4 h-4" />
                       </button>
                       <button
-                        onClick={() => downloadFile(url, fileName)}
-                        className="text-green-400 hover:text-green-300 transition-colors"
-                        title="Download file"
+                        onClick={() => downloadFile(url, cleanFileName)}
+                        className="text-blue-400 hover:text-blue-300 transition-colors bg-blue-500/20 p-2 rounded-lg hover:bg-blue-500/30"
+                        title="Download translated file"
                       >
                         <Download className="w-4 h-4" />
                       </button>
