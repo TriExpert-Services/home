@@ -1,5 +1,3 @@
-import React, { useState } from 'react';
-import { Shield, Mail, Lock, Eye, EyeOff, ArrowLeft, AlertCircle } from 'lucide-react';
 import React, { useState, useEffect } from 'react';
 import { Shield, Mail, Lock, Eye, EyeOff, ArrowLeft, AlertCircle, UserPlus } from 'lucide-react';
 import { useAdmin } from '../contexts/AdminContext';
