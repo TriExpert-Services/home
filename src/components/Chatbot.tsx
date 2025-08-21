@@ -82,14 +82,63 @@ const Chatbot = () => {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
 
-      const data = await response.json();
+      // Handle both JSON and text responses
+      const contentType = response.headers.get('content-type');
+      let data;
+      
+      if (contentType && contentType.includes('application/json')) {
+        data = await response.json();
+      } else {
+        // Handle HTML/text response from embedded chat
+        const htmlText = await response.text();
+        data = htmlText;
+      }
       
       // Debug logging
       console.log('N8N Response:', data);
+      console.log('Content-Type:', contentType);
       
-      // Handle different possible response formats
-      if (typeof data === 'string' && data.trim()) {
-        return data;
+      // Extract text content from embedded chat HTML
+      if (typeof data === 'string') {
+        // If it's HTML, extract text content
+        if (data.includes('<') && data.includes('>')) {
+          const tempDiv = document.createElement('div');
+          tempDiv.innerHTML = data;
+          
+          // Try to find chat message content in common chat widget structures
+          const messageSelectors = [
+            '.message-content',
+            '.chat-message',
+            '.bot-message',
+            '.message-text',
+            '[data-message]',
+            'p',
+            'span'
+          ];
+          
+          for (const selector of messageSelectors) {
+            const messageEl = tempDiv.querySelector(selector);
+            if (messageEl && messageEl.textContent && messageEl.textContent.trim()) {
+              console.log('Extracted message:', messageEl.textContent.trim());
+              return messageEl.textContent.trim();
+            }
+          }
+          
+          // Fallback: get all text content and clean it up
+          const textContent = tempDiv.textContent || tempDiv.innerText || '';
+          const cleanText = textContent
+            .replace(/\s+/g, ' ')
+            .replace(/[\r\n\t]/g, ' ')
+            .trim();
+          
+          if (cleanText && cleanText.length > 0) {
+            console.log('Extracted clean text:', cleanText);
+            return cleanText;
+          }
+        } else {
+          // It's plain text
+          return data.trim();
+        }
       } else if (data.response && typeof data.response === 'string') {
         return data.response;
       } else if (data.message && typeof data.message === 'string') {
@@ -116,8 +165,8 @@ const Chatbot = () => {
       // If we can't parse the response, return it as string
       console.warn('Unknown response format:', data);
       return language === 'es' 
-        ? `Respuesta recibida: ${JSON.stringify(data)}`
-        : `Response received: ${JSON.stringify(data)}`;
+        ? 'Lo siento, hubo un problema al procesar la respuesta. Intenta de nuevo.'
+        : 'Sorry, there was an issue processing the response. Please try again.';
         
     } catch (error) {
       console.error('Error sending message to N8N:', error);
