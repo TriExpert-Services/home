@@ -65,7 +65,13 @@ const DocumentManagement: React.FC<DocumentManagementProps> = ({
       
       console.log('All files uploaded, URLs:', uploadedUrls);
       
-      console.log('Updating database with URLs:', updatedUrls);
+      // Prepare the updated file URLs array
+      const currentUrls = requestData.translated_file_urls || [];
+      const updatedUrls = [...currentUrls, ...uploadedUrls];
+      
+      console.log('Current URLs in database:', currentUrls);
+      console.log('New URLs to add:', uploadedUrls);
+      console.log('Updated URLs array:', updatedUrls);
 
       // Try using the admin bypass function first
       try {
@@ -88,13 +94,12 @@ const DocumentManagement: React.FC<DocumentManagementProps> = ({
         console.error('RPC function failed, trying direct update:', rpcError);
         
         // Fallback to direct update
-        const currentUrls = requestData.translated_file_urls || [];
-        const updatedUrls = [...currentUrls, ...uploadedUrls];
-        
         const { error: updateError } = await supabase
           .from('translation_requests')
           .update({
             translated_file_urls: updatedUrls,
+            translator_notes: translatorNotes || null,
+            quality_score: qualityScore || null,
             status: 'completed',
             delivery_date: new Date().toISOString(),
             updated_at: new Date().toISOString()
@@ -110,7 +115,7 @@ const DocumentManagement: React.FC<DocumentManagementProps> = ({
       }
 
       onUpdate();
-      alert('Documents uploaded successfully!');
+      alert(`${uploadedUrls.length} document(s) uploaded successfully!`);
 
     } catch (error) {
       console.error('Error uploading files:', error);
