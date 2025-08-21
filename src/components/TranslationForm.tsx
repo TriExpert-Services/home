@@ -60,9 +60,8 @@ const TranslationForm = ({ onBack }: { onBack: () => void }) => {
   ];
 
   const processingTimes = [
-    { value: 'express', label: language === 'es' ? '24-48 horas (Express)' : '24-48 hours (Express)', cost: 2.0 },
-    { value: 'standard', label: language === 'es' ? '3-5 días (Estándar)' : '3-5 days (Standard)', cost: 1.0 },
-    { value: 'economy', label: language === 'es' ? '7-10 días (Económico)' : '7-10 days (Economy)', cost: 0.8 }
+    { value: 'standard', label: language === 'es' ? '8-12 horas (Normal)' : '8-12 hours (Normal)', cost: 1.0 },
+    { value: 'urgent', label: language === 'es' ? '1-2 horas (Urgente) +35%' : '1-2 hours (Urgent) +35%', cost: 1.35 }
   ];
 
   const formats = [
@@ -137,7 +136,10 @@ const TranslationForm = ({ onBack }: { onBack: () => void }) => {
 
   const calculateCost = (): number => {
     const pages = parseInt(formData.pageCount) || 0;
-    const baseRate = 25; // $25 per page
+    
+    // Precio por página: $20 base, $17.50 para 10+ páginas
+    const baseRate = pages >= 10 ? 17.50 : 20.00;
+    
     const processingMultiplier = processingTimes.find(p => p.value === formData.processingTime)?.cost || 1;
     const formatMultiplier = formData.desiredFormat === 'both' ? 1.2 : 1;
     
