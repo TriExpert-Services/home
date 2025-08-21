@@ -3,7 +3,7 @@ import { Settings, Shield, Zap, Code, Database, Cloud, FileText, ArrowRight, Ext
 import { useLanguage } from '../contexts/LanguageContext';
 
 const Services = () => {
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
 
   const scrollToContact = () => {
     const element = document.getElementById('contacto');
@@ -267,7 +267,7 @@ const Services = () => {
                     <ul className="space-y-2">
                       {service.keyBenefits.map((benefit, benefitIndex) => (
                         <li key={benefitIndex} className="flex items-start text-sm text-slate-300">
-                          <div className="w-2 h-2 bg-gradient-to-r ${service.color} rounded-full mr-3 mt-1.5 flex-shrink-0"></div>
+                          <div className={`w-2 h-2 bg-gradient-to-r ${service.color} rounded-full mr-3 mt-1.5 flex-shrink-0`}></div>
                           <span>{benefit}</span>
                         </li>
                       ))}
@@ -280,27 +280,29 @@ const Services = () => {
                   <h4 className="text-base font-medium text-white mb-3">
                     {language === 'es' ? 'Incluye:' : 'Includes:'}
                   </h4>
-                  {service.features.map((feature, featureIndex) => (
-                    <li key={featureIndex} className="flex items-center text-sm text-slate-400">
-                      <div className="w-1.5 h-1.5 bg-blue-500 rounded-full mr-3"></div>
-                      {feature}
-                    </li>
-                  ))}
+                  <ul className="space-y-2">
+                    {service.features.map((feature, featureIndex) => (
+                      <li key={featureIndex} className="flex items-center text-sm text-slate-400">
+                        <div className="w-1.5 h-1.5 bg-blue-500 rounded-full mr-3"></div>
+                        {feature}
+                      </li>
+                    ))}
+                  </ul>
                 </div>
                 
                 <div className="mt-auto">
                   <button 
-                  onClick={() => {
-                    if (service.title === t('services.translations.title')) {
-                      handleTranslationFormClick();
-                    } else {
-                      handleServiceInquiry(service.title);
-                    }
-                  }}
-                  className={`group/btn w-full bg-gradient-to-r ${service.color} text-white py-3 px-6 rounded-xl font-semibold hover:shadow-lg transform hover:scale-105 transition-all duration-200 flex items-center justify-center space-x-2`}
+                    onClick={() => {
+                      if (service.title === t('services.translations.title')) {
+                        handleTranslationFormClick();
+                      } else {
+                        handleServiceInquiry(service.title);
+                      }
+                    }}
+                    className={`group/btn w-full bg-gradient-to-r ${service.color} text-white py-3 px-6 rounded-xl font-semibold hover:shadow-lg transform hover:scale-105 transition-all duration-200 flex items-center justify-center space-x-2`}
                   >
-                  <span>{t('services.learnMore')}</span>
-                  <ArrowRight className="w-4 h-4 group-hover/btn:translate-x-1 transition-transform" />
+                    <span>{t('services.learnMore')}</span>
+                    <ArrowRight className="w-4 h-4 group-hover/btn:translate-x-1 transition-transform" />
                   </button>
                 </div>
               </div>
