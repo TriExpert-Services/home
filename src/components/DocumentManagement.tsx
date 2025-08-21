@@ -73,13 +73,23 @@ const DocumentManagement: React.FC<DocumentManagementProps> = ({
 
   const generateVerificationLink = async () => {
     try {
-      const { data, error } = await supabase.rpc('generate_verification_link', {
-        request_id: requestId
-      });
+      // Generate unique verification token
+      const verificationToken = `${crypto.randomUUID()}-${Date.now()}`;
+      
+      const { data, error } = await supabase
+        .from('translation_requests')
+        .update({
+          verification_link: verificationToken,
+          verification_expires_at: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(), // 30 days
+          is_verified: true
+        })
+        .eq('id', requestId)
+        .select()
+        .single();
 
       if (error) throw error;
 
-      setVerificationLink(data);
+      setVerificationLink(verificationToken);
       onUpdate();
       alert('Verification link generated successfully!');
 
