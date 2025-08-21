@@ -215,8 +215,8 @@ const TranslationForm = ({ onBack }: { onBack: () => void }) => {
       sendToN8N(requestData)
         .then((response) => {
           clearTimeout(timeout);
-          // Expect response to have payment_url or similar field
-          const paymentUrl = response?.payment_url || response?.paymentUrl || response?.stripe_url;
+          // N8N response format: { "url": "stripe_payment_url" }
+          const paymentUrl = response?.url;
           resolve(paymentUrl || null);
         })
         .catch((error) => {
