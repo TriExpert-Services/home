@@ -55,15 +55,6 @@ const AdminLogin: React.FC<AdminLoginProps> = ({ onBack }) => {
             <p className="text-white/70">Sign in to manage TriExpert Services</p>
           </div>
 
-          {/* Demo Credentials */}
-          <div className="bg-blue-500/20 border border-blue-500/30 rounded-xl p-4 mb-6">
-            <h3 className="text-blue-300 font-semibold mb-2">Demo Credentials:</h3>
-            <div className="text-sm text-blue-200 space-y-1">
-              <p><strong>Super Admin:</strong> admin@triexpertservice.com / admin123</p>
-              <p><strong>Admin:</strong> support@triexpertservice.com / support123</p>
-            </div>
-          </div>
-
           {/* Login Form */}
           <form onSubmit={handleSubmit} className="space-y-6">
             {/* Email Field */}

@@ -83,6 +83,7 @@ export const AdminProvider: React.FC<AdminProviderProps> = ({ children }) => {
   };
 
   const logout = () => {
+    supabase.auth.signOut();
     setUser(null);
     localStorage.removeItem('triexpert_admin');
   };
