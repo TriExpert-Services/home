@@ -74,8 +74,9 @@ export const AdminProvider: React.FC<AdminProviderProps> = ({ children }) => {
 
 
       if (adminUser) {
+        console.log('Admin user verified:', adminUser);
+        
         const userData: AdminUser = {
-        console.log('Last login updated');
           id: `admin_${Date.now()}`,
           email: adminUser.email,
           role: adminUser.role as 'admin' | 'superadmin',
@@ -83,7 +84,7 @@ export const AdminProvider: React.FC<AdminProviderProps> = ({ children }) => {
         };
 
         setUser(userData);
-      console.log('Supabase auth response:', { data, error });
+        console.log('User set successfully:', userData);
 
         localStorage.setItem('triexpert_admin', JSON.stringify(userData));
         console.error('Authentication error:', error.message);
