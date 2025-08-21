@@ -10,6 +10,7 @@ import TranslationForm from './components/TranslationForm';
 import TermsOfService from './components/TermsOfService';
 import PrivacyPolicy from './components/PrivacyPolicy';
 import CookiesPolicy from './components/CookiesPolicy';
+import Chatbot from './components/Chatbot';
 
 function App() {
   const [showTranslationForm, setShowTranslationForm] = useState(false);
@@ -57,6 +58,7 @@ function App() {
       <About />
       <Contact />
       <Footer />
+      <Chatbot />
     </div>
   );
 }
