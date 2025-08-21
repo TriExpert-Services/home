@@ -1,0 +1,101 @@
+import React, { createContext, useContext, useState, ReactNode, useEffect } from 'react';
+import { supabase } from '../lib/supabase';
+
+interface AdminUser {
+  id: string;
+  email: string;
+  role: 'admin' | 'superadmin';
+  created_at: string;
+}
+
+interface AdminContextType {
+  user: AdminUser | null;
+  isLoading: boolean;
+  login: (email: string, password: string) => Promise<boolean>;
+  logout: () => void;
+  isAuthenticated: boolean;
+}
+
+const AdminContext = createContext<AdminContextType | undefined>(undefined);
+
+export const useAdmin = () => {
+  const context = useContext(AdminContext);
+  if (!context) {
+    throw new Error('useAdmin must be used within AdminProvider');
+  }
+  return context;
+};
+
+interface AdminProviderProps {
+  children: ReactNode;
+}
+
+export const AdminProvider: React.FC<AdminProviderProps> = ({ children }) => {
+  const [user, setUser] = useState<AdminUser | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    // Check for existing admin session
+    const adminData = localStorage.getItem('triexpert_admin');
+    if (adminData) {
+      try {
+        const parsedAdmin = JSON.parse(adminData);
+        setUser(parsedAdmin);
+      } catch (error) {
+        console.error('Error parsing admin data:', error);
+        localStorage.removeItem('triexpert_admin');
+      }
+    }
+    setIsLoading(false);
+  }, []);
+
+  const login = async (email: string, password: string): Promise<boolean> => {
+    try {
+      // For demo purposes, using hardcoded admin credentials
+      // In production, this would be through Supabase Auth with RLS policies
+      const adminCredentials = [
+        { email: 'admin@triexpertservice.com', password: 'admin123', role: 'superadmin' },
+        { email: 'support@triexpertservice.com', password: 'support123', role: 'admin' }
+      ];
+
+      const adminUser = adminCredentials.find(
+        admin => admin.email === email && admin.password === password
+      );
+
+      if (adminUser) {
+        const userData: AdminUser = {
+          id: `admin_${Date.now()}`,
+          email: adminUser.email,
+          role: adminUser.role as 'admin' | 'superadmin',
+          created_at: new Date().toISOString()
+        };
+
+        setUser(userData);
+        localStorage.setItem('triexpert_admin', JSON.stringify(userData));
+        return true;
+      }
+
+      return false;
+    } catch (error) {
+      console.error('Login error:', error);
+      return false;
+    }
+  };
+
+  const logout = () => {
+    setUser(null);
+    localStorage.removeItem('triexpert_admin');
+  };
+
+  return (
+    <AdminContext.Provider value={{
+      user,
+      isLoading,
+      login,
+      logout,
+      isAuthenticated: !!user
+    }}>
+      {children}
+    </AdminContext.Provider>
+  );
+};
