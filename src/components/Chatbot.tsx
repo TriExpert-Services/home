@@ -16,7 +16,24 @@ const Chatbot = () => {
   const [inputMessage, setInputMessage] = useState('');
   const [isTyping, setIsTyping] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [sessionId, setSessionId] = useState<string>('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  // Generate unique session ID when component mounts
+  useEffect(() => {
+    const generateSessionId = () => {
+      // Use crypto.randomUUID() if available, otherwise fallback to timestamp + random
+      if (typeof crypto !== 'undefined' && crypto.randomUUID) {
+        return crypto.randomUUID();
+      }
+      // Fallback for older browsers
+      return `session_${Date.now()}_${Math.random().toString(36).substring(2, 15)}`;
+    };
+    
+    if (!sessionId) {
+      setSessionId(generateSessionId());
+    }
+  }, [sessionId]);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -30,7 +47,7 @@ const Chatbot = () => {
     if (isOpen && messages.length === 0) {
       // Add welcome message when chat opens for first time
       const welcomeMessage: Message = {
-        id: `welcome-${Date.now()}`,
+        id: `welcome-${sessionId}-${Date.now()}`,
         text: language === 'es' 
           ? '¡Hola! 👋 Soy el asistente virtual de TriExpert Services. ¿En qué puedo ayudarte hoy?'
           : 'Hello! 👋 I\'m the TriExpert Services virtual assistant. How can I help you today?',
@@ -39,7 +56,7 @@ const Chatbot = () => {
       };
       setMessages([welcomeMessage]);
     }
-  }, [isOpen, language, messages.length]);
+  }, [isOpen, language, messages.length, sessionId]);
 
   const sendToN8N = async (message: string): Promise<string> => {
     const webhookUrl = 'https://app.n8n-tech.cloud/webhook/88a9bbfc-0b34-4d81-a948-b6b8332d71cc/chat';
@@ -56,7 +73,10 @@ const Chatbot = () => {
           message: message,
           language: language,
           timestamp: new Date().toISOString(),
-          source: 'website_chat'
+          source: 'website_chat',
+          session_id: sessionId,
+          user_agent: navigator.userAgent,
+          page_url: window.location.href
         })
       });
 
@@ -91,7 +111,7 @@ const Chatbot = () => {
     if (!inputMessage.trim() || isLoading) return;
 
     const userMessage: Message = {
-      id: `user-${Date.now()}`,
+      id: `user-${sessionId}-${Date.now()}`,
       text: inputMessage.trim(),
       sender: 'user',
       timestamp: new Date()
@@ -108,7 +128,7 @@ const Chatbot = () => {
       // Simulate typing delay
       setTimeout(() => {
         const botMessage: Message = {
-          id: `bot-${Date.now()}`,
+          id: `bot-${sessionId}-${Date.now()}`,
           text: botResponse,
           sender: 'bot',
           timestamp: new Date()
@@ -122,7 +142,7 @@ const Chatbot = () => {
     } catch (error) {
       setTimeout(() => {
         const errorMessage: Message = {
-          id: `bot-error-${Date.now()}`,
+          id: `bot-error-${sessionId}-${Date.now()}`,
           text: language === 'es' 
             ? 'Disculpa, parece que hay un problema técnico. Por favor, intenta contactarnos directamente al +1 (813) 710-8860 o support@triexpertservice.com'
             : 'Sorry, there seems to be a technical issue. Please try contacting us directly at +1 (813) 710-8860 or support@triexpertservice.com',
