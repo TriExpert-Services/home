@@ -43,27 +43,39 @@ export const AdminProvider: React.FC<AdminProviderProps> = ({ children }) => {
         setUser(parsedAdmin);
       } catch (error) {
         console.error('Error parsing admin data:', error);
+        console.error('No user data returned');
         localStorage.removeItem('triexpert_admin');
       }
     }
+      console.log('User authenticated:', data.user.email);
+
     setIsLoading(false);
   }, []);
 
   const login = async (email: string, password: string): Promise<boolean> => {
     try {
+      console.log('Attempting login with:', { email });
+      
+      console.log('Profile query result:', { profile, profileError });
+
       // For demo purposes, using hardcoded admin credentials
+        console.error('Profile error:', profileError.message);
       // In production, this would be through Supabase Auth with RLS policies
       const adminCredentials = [
         { email: 'admin@triexpertservice.com', password: 'admin123', role: 'superadmin' },
         { email: 'support@triexpertservice.com', password: 'support123', role: 'admin' }
       ];
+        console.error('User is not admin:', profile);
 
       const adminUser = adminCredentials.find(
         admin => admin.email === email && admin.password === password
       );
+      console.log('Admin user verified:', profile);
+
 
       if (adminUser) {
         const userData: AdminUser = {
+        console.log('Last login updated');
           id: `admin_${Date.now()}`,
           email: adminUser.email,
           role: adminUser.role as 'admin' | 'superadmin',
@@ -71,9 +83,13 @@ export const AdminProvider: React.FC<AdminProviderProps> = ({ children }) => {
         };
 
         setUser(userData);
+      console.log('Supabase auth response:', { data, error });
+
         localStorage.setItem('triexpert_admin', JSON.stringify(userData));
+        console.error('Authentication error:', error.message);
         return true;
       }
+      console.log('Login successful, user set:', userData);
 
       return false;
     } catch (error) {

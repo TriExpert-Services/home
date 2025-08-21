@@ -1,6 +1,9 @@
 import React, { useState } from 'react';
 import { Shield, Mail, Lock, Eye, EyeOff, ArrowLeft, AlertCircle } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Shield, Mail, Lock, Eye, EyeOff, ArrowLeft, AlertCircle, UserPlus } from 'lucide-react';
 import { useAdmin } from '../contexts/AdminContext';
+import { supabase } from '../lib/supabase';
 
 interface AdminLoginProps {
   onBack: () => void;
@@ -12,8 +15,51 @@ const AdminLogin: React.FC<AdminLoginProps> = ({ onBack }) => {
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
+  const [showSignup, setShowSignup] = useState(false);
+  const [signupLoading, setSignupLoading] = useState(false);
 
   const { login } = useAdmin();
+
+  const handleSignup = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError('');
+    setSignupLoading(true);
+
+    const adminEmails = [
+      'admin@triexpertservice.com',
+      'support@triexpertservice.com', 
+      'yunior@triexpertservice.com',
+      'info@triexpertservice.com'
+    ];
+
+    if (!adminEmails.includes(email)) {
+      setError('Only authorized admin emails can create accounts');
+      setSignupLoading(false);
+      return;
+    }
+
+    try {
+      const { data, error } = await supabase.auth.signUp({
+        email,
+        password,
+      });
+
+      if (error) {
+        setError(error.message);
+        return;
+      }
+
+      if (data.user) {
+        setError('');
+        alert('Account created successfully! You can now sign in.');
+        setShowSignup(false);
+      }
+    } catch (error) {
+      setError('An error occurred during signup');
+    } finally {
+      setSignupLoading(false);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -56,7 +102,7 @@ const AdminLogin: React.FC<AdminLoginProps> = ({ onBack }) => {
           </div>
 
           {/* Login Form */}
-          <form onSubmit={handleSubmit} className="space-y-6">
+          <form onSubmit={showSignup ? handleSignup : handleSubmit} className="space-y-6">
             {/* Email Field */}
             <div>
               <label className="block text-sm font-medium text-white mb-2">
@@ -115,12 +161,40 @@ const AdminLogin: React.FC<AdminLoginProps> = ({ onBack }) => {
             {/* Submit Button */}
             <button
               type="submit"
-              disabled={isLoading}
+              disabled={isLoading || signupLoading}
               className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-semibold py-3 px-4 rounded-xl transition-all duration-200 transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
             >
-              {isLoading ? 'Signing in...' : 'Sign In'}
+              {isLoading || signupLoading 
+                ? (showSignup ? 'Creating Account...' : 'Signing in...') 
+                : (showSignup ? 'Create Admin Account' : 'Sign In')
+              }
             </button>
+
+            {/* Toggle Signup */}
+            <div className="text-center">
+              <button
+                type="button"
+                onClick={() => {
+                  setShowSignup(!showSignup);
+                  setError('');
+                }}
+                className="text-white/70 hover:text-white text-sm underline transition-colors"
+              >
+                {showSignup ? 'Already have an account? Sign In' : 'Need to create an admin account? Sign Up'}
+              </button>
+            </div>
           </form>
+
+          {/* Debug Info */}
+          <div className="mt-6 p-3 bg-white/5 rounded-lg">
+            <h4 className="text-white/70 text-sm font-medium mb-2">Authorized Admin Emails:</h4>
+            <div className="text-white/50 text-xs space-y-1">
+              <div>• admin@triexpertservice.com (superadmin)</div>
+              <div>• support@triexpertservice.com (admin)</div>
+              <div>• yunior@triexpertservice.com (admin)</div>
+              <div>• info@triexpertservice.com (admin)</div>
+            </div>
+          </div>
 
           {/* Footer */}
           <div className="mt-8 text-center">
