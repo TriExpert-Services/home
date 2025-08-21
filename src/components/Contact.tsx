@@ -74,6 +74,29 @@ const Contact = () => {
     });
   };
 
+  const sendToN8N = async (contactData: any): Promise<void> => {
+    const webhookUrl = 'https://app.n8n-tech.cloud/webhook/56144a26-b713-482c-9383-1ff3e562ae0a';
+    
+    try {
+      const response = await fetch(webhookUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(contactData)
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      console.log('Contact lead sent to N8N successfully');
+    } catch (error) {
+      console.error('Error sending to N8N:', error);
+      // Don't throw error - we don't want to break user experience
+    }
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setSubmitError(null);
@@ -84,7 +107,23 @@ const Contact = () => {
     
     setIsSubmitting(true);
     
-    simulateApiCall()
+    // Prepare data for N8N
+    const contactData = {
+      full_name: formData.name,
+      email: formData.email,
+      company: formData.company || null,
+      service: formData.service || null,
+      message: formData.message,
+      source: 'contact_form',
+      created_at: new Date().toISOString(),
+      language: t('contact.phone') === 'Phone' ? 'en' : 'es' // Detect language
+    };
+
+    // Send to N8N first, then simulate success
+    Promise.all([
+      sendToN8N(contactData),
+      simulateApiCall()
+    ])
       .then(() => {
         setIsSubmitted(true);
         setFormData({
