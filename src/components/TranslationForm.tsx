@@ -215,8 +215,17 @@ const TranslationForm = ({ onBack }: { onBack: () => void }) => {
       sendToN8N(requestData)
         .then((response) => {
           clearTimeout(timeout);
-          // N8N response format: { "url": "stripe_payment_url" }
-          const paymentUrl = response?.url;
+          // N8N response format: [{ "url": "stripe_payment_url" }]
+          let paymentUrl = null;
+          
+          if (Array.isArray(response) && response.length > 0) {
+            // Response is an array with Stripe payment_link object
+            paymentUrl = response[0]?.url;
+          } else if (response?.url) {
+            // Fallback for direct object response
+            paymentUrl = response.url;
+          }
+          
           resolve(paymentUrl || null);
         })
         .catch((error) => {
