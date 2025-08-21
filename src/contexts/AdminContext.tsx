@@ -35,74 +35,153 @@ export const AdminProvider: React.FC<AdminProviderProps> = ({ children }) => {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    // Check for existing admin session
-    const adminData = localStorage.getItem('triexpert_admin');
-    if (adminData) {
+    // Check for existing session on load
+    const checkSession = async () => {
       try {
-        const parsedAdmin = JSON.parse(adminData);
-        setUser(parsedAdmin);
-      } catch (error) {
-        console.error('Error parsing admin data:', error);
-        console.error('No user data returned');
-        localStorage.removeItem('triexpert_admin');
-      }
-    }
-      console.log('User authenticated:', data.user.email);
+        const { data: { session }, error } = await supabase.auth.getSession();
+        
+        if (error) {
+          console.error('Session error:', error);
+          setIsLoading(false);
+          return;
+        }
 
-    setIsLoading(false);
+        if (session?.user) {
+          console.log('Existing session found:', session.user.email);
+          
+          // Check if user is admin
+          const adminEmails = [
+            'admin@triexpertservice.com',
+            'support@triexpertservice.com',
+            'yunior@triexpertservice.com',
+            'info@triexpertservice.com'
+          ];
+
+          if (adminEmails.includes(session.user.email || '')) {
+            const role = session.user.email === 'admin@triexpertservice.com' ? 'superadmin' : 'admin';
+            
+            const userData: AdminUser = {
+              id: session.user.id,
+              email: session.user.email || '',
+              role: role,
+              created_at: session.user.created_at || new Date().toISOString()
+            };
+
+            setUser(userData);
+            console.log('Admin user authenticated:', userData);
+
+            // Update last login
+            try {
+              await supabase.rpc('update_last_login', { user_uuid: session.user.id });
+            } catch (loginError) {
+              console.warn('Could not update last login:', loginError);
+            }
+          } else {
+            console.warn('User is not authorized admin:', session.user.email);
+            await supabase.auth.signOut();
+          }
+        } else {
+          console.log('No active session');
+        }
+      } catch (error) {
+        console.error('Session check error:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    checkSession();
+
+    // Listen for auth changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      console.log('Auth state changed:', event, session?.user?.email);
+      
+      if (event === 'SIGNED_OUT' || !session) {
+        setUser(null);
+      } else if (event === 'SIGNED_IN' && session?.user) {
+        // Check if user is admin
+        const adminEmails = [
+          'admin@triexpertservice.com',
+          'support@triexpertservice.com',
+          'yunior@triexpertservice.com',
+          'info@triexpertservice.com'
+        ];
+
+        if (adminEmails.includes(session.user.email || '')) {
+          const role = session.user.email === 'admin@triexpertservice.com' ? 'superadmin' : 'admin';
+          
+          const userData: AdminUser = {
+            id: session.user.id,
+            email: session.user.email || '',
+            role: role,
+            created_at: session.user.created_at || new Date().toISOString()
+          };
+
+          setUser(userData);
+        } else {
+          console.warn('User is not authorized admin:', session.user.email);
+          await supabase.auth.signOut();
+        }
+      }
+    });
+
+    return () => subscription.unsubscribe();
   }, []);
 
   const login = async (email: string, password: string): Promise<boolean> => {
     try {
       console.log('Attempting login with:', { email });
       
-      console.log('Profile query result:', { profile, profileError });
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password
+      });
 
-      // For demo purposes, using hardcoded admin credentials
-        console.error('Profile error:', profileError.message);
-      // In production, this would be through Supabase Auth with RLS policies
-      const adminCredentials = [
-        { email: 'admin@triexpertservice.com', password: 'admin123', role: 'superadmin' },
-        { email: 'support@triexpertservice.com', password: 'support123', role: 'admin' }
-      ];
-        console.error('User is not admin:', profile);
-
-      const adminUser = adminCredentials.find(
-        admin => admin.email === email && admin.password === password
-      );
-      console.log('Admin user verified:', profile);
-
-
-      if (adminUser) {
-        console.log('Admin user verified:', adminUser);
-        
-        const userData: AdminUser = {
-          id: `admin_${Date.now()}`,
-          email: adminUser.email,
-          role: adminUser.role as 'admin' | 'superadmin',
-          created_at: new Date().toISOString()
-        };
-
-        setUser(userData);
-        console.log('User set successfully:', userData);
-
-        localStorage.setItem('triexpert_admin', JSON.stringify(userData));
+      if (error) {
         console.error('Authentication error:', error.message);
-        return true;
+        return false;
       }
-      console.log('Login successful, user set:', userData);
 
-      return false;
+      if (!data.user) {
+        console.error('No user data returned');
+        return false;
+      }
+
+      console.log('User authenticated:', data.user.email);
+
+      // Check if user is admin
+      const adminEmails = [
+        'admin@triexpertservice.com',
+        'support@triexpertservice.com',
+        'yunior@triexpertservice.com',
+        'info@triexpertservice.com'
+      ];
+
+      if (!adminEmails.includes(data.user.email || '')) {
+        console.error('User is not admin:', data.user.email);
+        await supabase.auth.signOut();
+        return false;
+      }
+
+      console.log('Admin user verified');
+
+      // User will be set by the auth state change listener
+      return true;
+
     } catch (error) {
       console.error('Login error:', error);
       return false;
     }
   };
 
-  const logout = () => {
-    supabase.auth.signOut();
-    setUser(null);
-    localStorage.removeItem('triexpert_admin');
+  const logout = async () => {
+    try {
+      await supabase.auth.signOut();
+      setUser(null);
+      console.log('User logged out');
+    } catch (error) {
+      console.error('Logout error:', error);
+    }
   };
 
   return (
