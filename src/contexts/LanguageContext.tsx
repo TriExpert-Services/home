@@ -138,7 +138,13 @@ const translations = {
     'footer.businessHours': 'Business Hours',
     'footer.rights': 'All rights reserved.',
     'footer.terms': 'Terms of Service',
-    'footer.cookies': 'Cookies'
+    'footer.cookies': 'Cookies',
+    
+    // Legal Pages
+    'legal.terms': 'Terms of Service',
+    'legal.privacy': 'Privacy Policy', 
+    'legal.cookies': 'Cookies Policy',
+    'legal.backToHome': 'Back to Home'
   },
   es: {
     // Header
@@ -269,7 +275,13 @@ const translations = {
     'footer.businessHours': 'Horarios de Atención',
     'footer.rights': 'Todos los derechos reservados.',
     'footer.terms': 'Términos de Servicio',
-    'footer.cookies': 'Cookies'
+    'footer.cookies': 'Cookies',
+    
+    // Legal Pages
+    'legal.terms': 'Términos de Servicio',
+    'legal.privacy': 'Política de Privacidad',
+    'legal.cookies': 'Política de Cookies', 
+    'legal.backToHome': 'Volver al Inicio'
   }
 };
 

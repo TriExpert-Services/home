@@ -167,11 +167,10 @@ const Footer = () => {
                   <ExternalLink className="w-3 h-3 ml-1 opacity-0 group-hover:opacity-100 transition-opacity" />
                 </button>
               </li>
-              <li><span className="text-gray-500 cursor-not-allowed">{t('footer.ourTeam')} (Coming Soon)</span></li>
-              <li><span className="text-gray-500 cursor-not-allowed">{t('footer.successStories')} (Coming Soon)</span></li>
-              <li><span className="text-gray-500 cursor-not-allowed">{t('footer.blog')} (Coming Soon)</span></li>
-              <li><span className="text-gray-500 cursor-not-allowed">{t('footer.careers')} (Coming Soon)</span></li>
-              <li><span className="text-gray-500 cursor-not-allowed">{t('footer.privacy')} (Coming Soon)</span></li>
+              <li><span className="text-gray-500 cursor-not-allowed">{t('footer.ourTeam')}</span></li>
+              <li><span className="text-gray-500 cursor-not-allowed">{t('footer.successStories')}</span></li>
+              <li><span className="text-gray-500 cursor-not-allowed">{t('footer.blog')}</span></li>
+              <li><span className="text-gray-500 cursor-not-allowed">{t('footer.careers')}</span></li>
             </ul>
           </div>
 
@@ -216,9 +215,24 @@ const Footer = () => {
               © {currentYear} TriExpert Services. {t('footer.rights')}
             </p>
             <div className="flex space-x-6 text-sm">
-              <span className="text-gray-500 cursor-not-allowed">{t('footer.terms')}</span>
-              <span className="text-gray-500 cursor-not-allowed">{t('footer.privacy')}</span>
-              <span className="text-gray-500 cursor-not-allowed">{t('footer.cookies')}</span>
+              <button
+                onClick={() => window.dispatchEvent(new CustomEvent('showLegalPage', { detail: 'terms' }))}
+                className="text-gray-400 hover:text-white transition-colors"
+              >
+                {t('footer.terms')}
+              </button>
+              <button
+                onClick={() => window.dispatchEvent(new CustomEvent('showLegalPage', { detail: 'privacy' }))}
+                className="text-gray-400 hover:text-white transition-colors"
+              >
+                {t('footer.privacy')}
+              </button>
+              <button
+                onClick={() => window.dispatchEvent(new CustomEvent('showLegalPage', { detail: 'cookies' }))}
+                className="text-gray-400 hover:text-white transition-colors"
+              >
+                {t('footer.cookies')}
+              </button>
             </div>
           </div>
         </div>
