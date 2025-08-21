@@ -60,14 +60,12 @@ const Chatbot = () => {
 
   const sendToN8N = async (message: string): Promise<string> => {
     const webhookUrl = 'https://app.n8n-tech.cloud/webhook/88a9bbfc-0b34-4d81-a948-b6b8332d71cc/chat';
-    const credentials = btoa('Yamed212:20391793_Junio');
     
     try {
       const response = await fetch(webhookUrl, {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Basic ${credentials}`
+          'Content-Type': 'application/json'
         },
         body: JSON.stringify({
           message: message,
@@ -86,20 +84,40 @@ const Chatbot = () => {
 
       const data = await response.json();
       
+      // Debug logging
+      console.log('N8N Response:', data);
+      
       // Handle different possible response formats
-      if (typeof data === 'string') {
+      if (typeof data === 'string' && data.trim()) {
         return data;
-      } else if (data.response) {
+      } else if (data.response && typeof data.response === 'string') {
         return data.response;
-      } else if (data.message) {
+      } else if (data.message && typeof data.message === 'string') {
         return data.message;
+      } else if (data.reply && typeof data.reply === 'string') {
+        return data.reply;
+      } else if (data.text && typeof data.text === 'string') {
+        return data.text;
       } else if (Array.isArray(data) && data.length > 0) {
-        return data[0].response || data[0].message || data[0];
+        const firstItem = data[0];
+        if (typeof firstItem === 'string') {
+          return firstItem;
+        } else if (firstItem.response) {
+          return firstItem.response;
+        } else if (firstItem.message) {
+          return firstItem.message;
+        } else if (firstItem.reply) {
+          return firstItem.reply;
+        } else if (firstItem.text) {
+          return firstItem.text;
+        }
       }
       
+      // If we can't parse the response, return it as string
+      console.warn('Unknown response format:', data);
       return language === 'es' 
-        ? 'Recibí tu mensaje. ¿En qué más puedo ayudarte?'
-        : 'I received your message. How else can I help you?';
+        ? `Respuesta recibida: ${JSON.stringify(data)}`
+        : `Response received: ${JSON.stringify(data)}`;
         
     } catch (error) {
       console.error('Error sending message to N8N:', error);
@@ -137,15 +155,15 @@ const Chatbot = () => {
         setMessages(prev => [...prev, botMessage]);
         setIsTyping(false);
         setIsLoading(false);
-      }, 1000);
+      }, 800);
       
     } catch (error) {
       setTimeout(() => {
         const errorMessage: Message = {
           id: `bot-error-${sessionId}-${Date.now()}`,
           text: language === 'es' 
-            ? 'Disculpa, parece que hay un problema técnico. Por favor, intenta contactarnos directamente al +1 (813) 710-8860 o support@triexpertservice.com'
-            : 'Sorry, there seems to be a technical issue. Please try contacting us directly at +1 (813) 710-8860 or support@triexpertservice.com',
+            ? `Error de conexión: ${error instanceof Error ? error.message : 'Error desconocido'}. Intenta de nuevo o contacta directamente al +1 (813) 710-8860`
+            : `Connection error: ${error instanceof Error ? error.message : 'Unknown error'}. Try again or contact directly at +1 (813) 710-8860`,
           sender: 'bot',
           timestamp: new Date()
         };
@@ -153,7 +171,7 @@ const Chatbot = () => {
         setMessages(prev => [...prev, errorMessage]);
         setIsTyping(false);
         setIsLoading(false);
-      }, 1000);
+      }, 800);
     }
   };
 
