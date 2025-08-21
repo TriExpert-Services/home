@@ -54,49 +54,121 @@ const Services = () => {
       icon: <Settings className="w-8 h-8" />,
       title: t('services.consulting.title'),
       description: t('services.consulting.description'),
+      detailedDescription: t('services.consulting.detailed'),
+      businessBenefits: {
+        small: t('services.consulting.smallBusiness'),
+        medium: t('services.consulting.mediumBusiness'), 
+        enterprise: t('services.consulting.enterprise')
+      },
       features: [t('services.consulting.feature1'), t('services.consulting.feature2'), t('services.consulting.feature3')],
       color: "from-blue-500 to-blue-600",
-      highlight: "Most Popular"
+      highlight: "Most Popular",
+      keyBenefits: [
+        t('services.consulting.benefit1'),
+        t('services.consulting.benefit2'), 
+        t('services.consulting.benefit3'),
+        t('services.consulting.benefit4')
+      ]
     },
     {
       icon: <Shield className="w-8 h-8" />,
       title: t('services.security.title'),
       description: t('services.security.description'),
+      detailedDescription: t('services.security.detailed'),
+      businessBenefits: {
+        small: t('services.security.smallBusiness'),
+        medium: t('services.security.mediumBusiness'),
+        enterprise: t('services.security.enterprise')
+      },
       features: [t('services.security.feature1'), t('services.security.feature2'), t('services.security.feature3')],
       color: "from-green-500 to-green-600",
-      highlight: "High Demand"
+      highlight: "High Demand",
+      keyBenefits: [
+        t('services.security.benefit1'),
+        t('services.security.benefit2'),
+        t('services.security.benefit3'), 
+        t('services.security.benefit4')
+      ]
     },
     {
       icon: <Cloud className="w-8 h-8" />,
       title: t('services.cloud.title'),
       description: t('services.cloud.description'),
+      detailedDescription: t('services.cloud.detailed'),
+      businessBenefits: {
+        small: t('services.cloud.smallBusiness'),
+        medium: t('services.cloud.mediumBusiness'),
+        enterprise: t('services.cloud.enterprise')
+      },
       features: [t('services.cloud.feature1'), t('services.cloud.feature2'), t('services.cloud.feature3')],
       color: "from-purple-500 to-purple-600",
-      highlight: "Trending"
+      highlight: "Trending",
+      keyBenefits: [
+        t('services.cloud.benefit1'),
+        t('services.cloud.benefit2'),
+        t('services.cloud.benefit3'),
+        t('services.cloud.benefit4')
+      ]
     },
     {
       icon: <Code className="w-8 h-8" />,
       title: t('services.development.title'),
       description: t('services.development.description'),
+      detailedDescription: t('services.development.detailed'),
+      businessBenefits: {
+        small: t('services.development.smallBusiness'),
+        medium: t('services.development.mediumBusiness'),
+        enterprise: t('services.development.enterprise')
+      },
       features: [t('services.development.feature1'), t('services.development.feature2'), t('services.development.feature3')],
       color: "from-orange-500 to-orange-600",
-      highlight: "Custom Solutions"
+      highlight: "Custom Solutions",
+      keyBenefits: [
+        t('services.development.benefit1'),
+        t('services.development.benefit2'),
+        t('services.development.benefit3'),
+        t('services.development.benefit4')
+      ]
     },
     {
       icon: <Database className="w-8 h-8" />,
       title: t('services.data.title'),
       description: t('services.data.description'),
+      detailedDescription: t('services.data.detailed'),
+      businessBenefits: {
+        small: t('services.data.smallBusiness'),
+        medium: t('services.data.mediumBusiness'),
+        enterprise: t('services.data.enterprise')
+      },
       features: [t('services.data.feature1'), t('services.data.feature2'), t('services.data.feature3')],
       color: "from-indigo-500 to-indigo-600",
-      highlight: "Enterprise Ready"
+      highlight: "Enterprise Ready",
+      keyBenefits: [
+        t('services.data.benefit1'),
+        t('services.data.benefit2'),
+        t('services.data.benefit3'),
+        t('services.data.benefit4')
+      ]
     },
     {
       icon: <Zap className="w-8 h-8" />,
       title: t('services.automation.title'),
       description: t('services.automation.description'),
+      detailedDescription: t('services.automation.detailed'),
+      businessBenefits: {
+        small: t('services.automation.smallBusiness'),
+        medium: t('services.automation.mediumBusiness'),
+        enterprise: t('services.automation.enterprise')
+      },
       features: [t('services.automation.feature1'), t('services.automation.feature2'), t('services.automation.feature3')],
       color: "from-yellow-500 to-yellow-600",
-      highlight: "Efficiency Boost"
+      highlight: "Efficiency Boost",
+      keyBenefits: [
+        t('services.automation.benefit1'),
+        t('services.automation.benefit2'),
+        t('services.automation.benefit3'),
+        t('services.automation.benefit4')
+      ]
     },
     {
       icon: <FileText className="w-8 h-8" />,
@@ -127,7 +199,7 @@ const Services = () => {
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
           {services.map((service, index) => (
-            <div key={index} className="group relative">
+            <div key={index} className="group relative h-full">
               {/* Service highlight badge */}
               {service.highlight && (
                 <div className={`absolute -top-2 -right-2 bg-gradient-to-r ${service.color} text-white text-xs font-semibold px-3 py-1 rounded-full shadow-lg z-10 transform rotate-3`}>
@@ -135,29 +207,89 @@ const Services = () => {
                 </div>
               )}
               
-              <div className="bg-slate-800/50 backdrop-blur-sm border border-slate-700 rounded-2xl p-8 shadow-lg hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-2">
+              <div className="bg-slate-800/50 backdrop-blur-sm border border-slate-700 rounded-2xl p-8 shadow-lg hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-2 h-full flex flex-col">
                 <div className={`inline-flex items-center justify-center w-16 h-16 bg-gradient-to-r ${service.color} rounded-xl text-white mb-6 group-hover:scale-110 transition-transform duration-300`}>
                   {service.icon}
                 </div>
                 
-                <h3 className="text-xl font-bold text-white mb-3">
+                <h3 className="text-2xl font-bold text-white mb-4">
                   {service.title}
                 </h3>
                 
-                <p className="text-slate-300 mb-6 leading-relaxed">
+                <p className="text-slate-300 mb-4 leading-relaxed">
                   {service.description}
                 </p>
                 
-                <ul className="space-y-2 mb-6">
+                {/* Detailed Description - Only for non-translation services */}
+                {service.detailedDescription && (
+                  <div className="mb-6">
+                    <p className="text-slate-400 text-sm leading-relaxed mb-4">
+                      {service.detailedDescription}
+                    </p>
+                  </div>
+                )}
+
+                {/* Business Benefits - Only for non-translation services */}
+                {service.businessBenefits && (
+                  <div className="mb-6">
+                    <h4 className="text-lg font-semibold text-blue-400 mb-3">
+                      {language === 'es' ? 'Beneficios por Sector' : 'Benefits by Sector'}
+                    </h4>
+                    <div className="space-y-3">
+                      <div className="bg-slate-700/30 rounded-lg p-3">
+                        <h5 className="font-medium text-green-400 text-sm mb-1">
+                          {language === 'es' ? 'Pequeñas Empresas:' : 'Small Businesses:'}
+                        </h5>
+                        <p className="text-slate-300 text-xs">{service.businessBenefits.small}</p>
+                      </div>
+                      <div className="bg-slate-700/30 rounded-lg p-3">
+                        <h5 className="font-medium text-blue-400 text-sm mb-1">
+                          {language === 'es' ? 'Medianas Empresas:' : 'Medium Businesses:'}
+                        </h5>
+                        <p className="text-slate-300 text-xs">{service.businessBenefits.medium}</p>
+                      </div>
+                      <div className="bg-slate-700/30 rounded-lg p-3">
+                        <h5 className="font-medium text-purple-400 text-sm mb-1">
+                          {language === 'es' ? 'Grandes Empresas:' : 'Enterprise:'}
+                        </h5>
+                        <p className="text-slate-300 text-xs">{service.businessBenefits.enterprise}</p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Key Benefits - Only for non-translation services */}
+                {service.keyBenefits && (
+                  <div className="mb-6">
+                    <h4 className="text-lg font-semibold text-orange-400 mb-3">
+                      {language === 'es' ? 'Beneficios Clave' : 'Key Benefits'}
+                    </h4>
+                    <ul className="space-y-2">
+                      {service.keyBenefits.map((benefit, benefitIndex) => (
+                        <li key={benefitIndex} className="flex items-start text-sm text-slate-300">
+                          <div className="w-2 h-2 bg-gradient-to-r ${service.color} rounded-full mr-3 mt-1.5 flex-shrink-0"></div>
+                          <span>{benefit}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+                
+                {/* Regular Features */}
+                <div className="mb-6">
+                  <h4 className="text-base font-medium text-white mb-3">
+                    {language === 'es' ? 'Incluye:' : 'Includes:'}
+                  </h4>
                   {service.features.map((feature, featureIndex) => (
                     <li key={featureIndex} className="flex items-center text-sm text-slate-400">
                       <div className="w-1.5 h-1.5 bg-blue-500 rounded-full mr-3"></div>
                       {feature}
                     </li>
                   ))}
-                </ul>
+                </div>
                 
-                <button 
+                <div className="mt-auto">
+                  <button 
                   onClick={() => {
                     if (service.title === t('services.translations.title')) {
                       handleTranslationFormClick();
@@ -166,10 +298,11 @@ const Services = () => {
                     }
                   }}
                   className={`group/btn w-full bg-gradient-to-r ${service.color} text-white py-3 px-6 rounded-xl font-semibold hover:shadow-lg transform hover:scale-105 transition-all duration-200 flex items-center justify-center space-x-2`}
-                >
+                  >
                   <span>{t('services.learnMore')}</span>
                   <ArrowRight className="w-4 h-4 group-hover/btn:translate-x-1 transition-transform" />
-                </button>
+                  </button>
+                </div>
               </div>
             </div>
           ))}
