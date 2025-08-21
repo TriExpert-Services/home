@@ -14,6 +14,7 @@ import CookiesPolicy from './components/CookiesPolicy';
 import Chatbot from './components/Chatbot';
 import AdminLogin from './components/AdminLogin';
 import AdminPanel from './components/AdminPanel';
+import VerificationPage from './components/VerificationPage';
 
 // Admin wrapper component to handle admin routing
 function AdminWrapper() {
@@ -60,12 +61,25 @@ function AdminWrapper() {
 function App() {
   const [showTranslationForm, setShowTranslationForm] = useState(false);
   const [currentLegalPage, setCurrentLegalPage] = useState<string | null>(null);
+  const [verificationToken, setVerificationToken] = useState<string | null>(null);
 
   // Check if we should show admin interface
   const shouldShowAdmin = window.location.pathname.startsWith('/admin') || 
                          window.location.hash.includes('admin');
 
   useEffect(() => {
+    // Check for verification token in URL
+    const checkForVerificationToken = () => {
+      const path = window.location.pathname;
+      const verifyMatch = path.match(/^\/verify\/(.+)$/);
+      if (verifyMatch) {
+        setVerificationToken(verifyMatch[1]);
+        return;
+      }
+    };
+
+    checkForVerificationToken();
+
     const handleShowTranslationForm = () => {
       setShowTranslationForm(true);
     };
@@ -90,6 +104,16 @@ function App() {
       window.removeEventListener('showAdminPanel', handleShowAdminPanel);
     };
   }, []);
+
+  if (verificationToken) {
+    return <VerificationPage 
+      verificationToken={verificationToken} 
+      onBack={() => {
+        setVerificationToken(null);
+        window.history.pushState({}, '', '/');
+      }} 
+    />;
+  }
 
   if (showTranslationForm) {
     return <TranslationForm onBack={() => setShowTranslationForm(false)} />;

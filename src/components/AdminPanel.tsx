@@ -20,10 +20,14 @@ import {
   Clock,
   CheckCircle,
   XCircle,
-  AlertTriangle
+  AlertTriangle,
+  Upload,
+  ExternalLink,
+  Star
 } from 'lucide-react';
 import { useAdmin } from '../contexts/AdminContext';
 import { supabase } from '../lib/supabase';
+import DocumentManagement from './DocumentManagement';
 
 interface TranslationRequest {
   id: string;
@@ -66,6 +70,8 @@ const AdminPanel = () => {
     requestsThisMonth: 0
   });
   const [isLoading, setIsLoading] = useState(false);
+  const [selectedRequestForDocuments, setSelectedRequestForDocuments] = useState<string | null>(null);
+  const [selectedRequestData, setSelectedRequestData] = useState<any>(null);
 
   useEffect(() => {
     loadData();
@@ -377,6 +383,7 @@ const AdminPanel = () => {
                         <th className="text-left p-4 text-slate-300 font-semibold">Cost</th>
                         <th className="text-left p-4 text-slate-300 font-semibold">Date</th>
                         <th className="text-left p-4 text-slate-300 font-semibold">Actions</th>
+                        <th className="text-left p-4 text-slate-300 font-semibold">Documents</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -400,6 +407,13 @@ const AdminPanel = () => {
                               <p className="text-white">{request.document_type.replace('_', ' ')}</p>
                               <p className="text-slate-400 text-sm">{request.page_count} pages</p>
                               <p className="text-slate-400 text-sm">{request.desired_format}</p>
+                              {/* Quality Score */}
+                              {request.quality_score && (
+                                <div className="flex items-center space-x-1 mt-1">
+                                  <Star className="w-3 h-3 text-yellow-400 fill-yellow-400" />
+                                  <span className="text-yellow-400 text-xs">{request.quality_score}/5</span>
+                                </div>
+                              )}
                             </div>
                           </td>
                           <td className="p-4">
@@ -415,6 +429,18 @@ const AdminPanel = () => {
                               {getStatusIcon(request.status)}
                               <span className="capitalize">{request.status.replace('_', ' ')}</span>
                             </div>
+                            {/* Verification Status */}
+                            {request.verification_link && (
+                              <div className="mt-1">
+                                <span className={`px-2 py-0.5 rounded text-xs ${
+                                  request.verification_expires_at && new Date(request.verification_expires_at) > new Date()
+                                    ? 'bg-purple-500/20 text-purple-300'
+                                    : 'bg-red-500/20 text-red-300'
+                                }`}>
+                                  {request.verification_expires_at && new Date(request.verification_expires_at) > new Date() ? 'Verified' : 'Expired'}
+                                </span>
+                              </div>
+                            )}
                           </td>
                           <td className="p-4">
                             <p className="text-white font-semibold">{formatCurrency(request.total_cost || 0)}</p>
@@ -426,6 +452,9 @@ const AdminPanel = () => {
                               <div>
                                 <p className="text-white text-sm">{formatDate(request.created_at)}</p>
                                 <p className="text-slate-400 text-xs">Needed: {request.request_date}</p>
+                                {request.delivery_date && (
+                                  <p className="text-green-400 text-xs">Delivered: {formatDate(request.delivery_date)}</p>
+                                )}
                               </div>
                             </div>
                           </td>
@@ -450,6 +479,39 @@ const AdminPanel = () => {
                               </button>
                             </div>
                           </td>
+                          <td className="p-4">
+                            <div className="flex flex-col space-y-2">
+                              <button
+                                onClick={() => {
+                                  setSelectedRequestForDocuments(request.id);
+                                  setSelectedRequestData(request);
+                                }}
+                                className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded text-xs transition-colors flex items-center space-x-1"
+                              >
+                                <Upload className="w-3 h-3" />
+                                <span>Manage</span>
+                              </button>
+                              
+                              {/* Document Count */}
+                              {request.translated_file_urls && request.translated_file_urls.length > 0 && (
+                                <div className="text-xs text-green-400">
+                                  {request.translated_file_urls.length} files
+                                </div>
+                              )}
+                              
+                              {/* Verification Link */}
+                              {request.verification_link && (
+                                <button
+                                  onClick={() => window.open(`/verify/${request.verification_link}`, '_blank')}
+                                  className="bg-purple-600 hover:bg-purple-700 text-white px-3 py-1 rounded text-xs transition-colors flex items-center space-x-1"
+                                  title="View verification page"
+                                >
+                                  <ExternalLink className="w-3 h-3" />
+                                  <span>Verify</span>
+                                </button>
+                              )}
+                            </div>
+                          </td>
                         </tr>
                       ))}
                     </tbody>
@@ -462,6 +524,43 @@ const AdminPanel = () => {
                     <p className="text-slate-400">No translation requests found</p>
                   </div>
                 )}
+              </div>
+            </div>
+          )}
+
+          {/* Document Management Modal */}
+          {selectedRequestForDocuments && selectedRequestData && (
+            <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+              <div className="bg-slate-800 rounded-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+                <div className="sticky top-0 bg-slate-800 border-b border-slate-700 p-6 flex items-center justify-between">
+                  <div>
+                    <h2 className="text-xl font-bold text-white">Document Management</h2>
+                    <p className="text-slate-400">{selectedRequestData.full_name} - {selectedRequestData.document_type}</p>
+                  </div>
+                  <button
+                    onClick={() => {
+                      setSelectedRequestForDocuments(null);
+                      setSelectedRequestData(null);
+                    }}
+                    className="text-slate-400 hover:text-white transition-colors"
+                  >
+                    <XCircle className="w-6 h-6" />
+                  </button>
+                </div>
+                <div className="p-6">
+                  <DocumentManagement
+                    requestId={selectedRequestForDocuments}
+                    requestData={selectedRequestData}
+                    onUpdate={() => {
+                      loadData();
+                      // Update the selected data
+                      const updatedRequest = translationRequests.find(r => r.id === selectedRequestForDocuments);
+                      if (updatedRequest) {
+                        setSelectedRequestData(updatedRequest);
+                      }
+                    }}
+                  />
+                </div>
               </div>
             </div>
           )}
