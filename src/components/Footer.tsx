@@ -233,6 +233,12 @@ const Footer = () => {
               >
                 {t('footer.cookies')}
               </button>
+              <button
+                onClick={() => window.dispatchEvent(new CustomEvent('showAdminPanel'))}
+                className="text-gray-400 hover:text-white transition-colors"
+              >
+                Admin
+              </button>
             </div>
           </div>
         </div>
