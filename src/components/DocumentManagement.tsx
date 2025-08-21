@@ -29,55 +29,85 @@ const DocumentManagement: React.FC<DocumentManagementProps> = ({
     try {
       console.log('Starting file upload process...', files.length, 'files');
       
-      const uploadPromises = Array.from(files).map(async (file) => {
-        const fileName = `translated_${requestId}_${Date.now()}_${file.name}`;
-        
-        console.log('Uploading file:', fileName, 'Size:', file.size, 'bytes');
-        
-        const { data, error } = await supabase.storage
-          .from('translated-documents')
-          .upload(fileName, file);
-
-        if (error) {
-          console.error('Upload error for file:', fileName, error);
-          throw error;
-        }
-        
-        console.log('File uploaded successfully:', data);
-
-        const { data: publicUrl } = supabase.storage
-          .from('translated-documents')
-          .getPublicUrl(fileName);
-          
-        console.log('Public URL generated:', publicUrl.publicUrl);
-
-        return publicUrl.publicUrl;
-      });
-
-      const uploadedUrls = await Promise.all(uploadPromises);
-      console.log('All files uploaded, URLs:', uploadedUrls);
+      // Upload files one by one with better error handling
+      const uploadedUrls: string[] = [];
       
-      // Update the translation request with uploaded files
-      const currentUrls = requestData.translated_file_urls || [];
-      const updatedUrls = [...currentUrls, ...uploadedUrls];
+      for (let i = 0; i < files.length; i++) {
+        const file = files[i];
+        const fileName = `translated_${requestId}_${Date.now()}_${i}_${file.name}`;
+        
+        console.log(`Uploading file ${i + 1}/${files.length}:`, fileName, 'Size:', file.size, 'bytes');
+        
+        try {
+          const { data, error } = await supabase.storage
+            .from('translated-documents')
+            .upload(fileName, file);
+
+          if (error) {
+            console.error('Upload error for file:', fileName, error);
+            throw new Error(`Failed to upload ${file.name}: ${error.message}`);
+          }
+          
+          console.log('File uploaded successfully:', data);
+
+          const { data: publicUrl } = supabase.storage
+            .from('translated-documents')
+            .getPublicUrl(fileName);
+            
+          console.log('Public URL generated:', publicUrl.publicUrl);
+          uploadedUrls.push(publicUrl.publicUrl);
+          
+        } catch (fileError) {
+          console.error(`Error uploading file ${file.name}:`, fileError);
+          throw fileError;
+        }
+      }
+      
+      console.log('All files uploaded, URLs:', uploadedUrls);
       
       console.log('Updating database with URLs:', updatedUrls);
 
-      const { error } = await supabase
-        .from('translation_requests')
-        .update({
-          translated_file_urls: updatedUrls,
-          status: 'completed',
-          delivery_date: new Date().toISOString()
-        })
-        .eq('id', requestId);
+      // Try using the admin bypass function first
+      try {
+        const { data, error } = await supabase
+          .rpc('admin_update_translation_with_files', {
+            request_id: requestId,
+            file_urls: uploadedUrls,
+            notes: translatorNotes || null,
+            quality: qualityScore || null
+          });
 
-      if (error) {
-        console.error('Database update error:', error);
-        throw error;
+        if (error) {
+          console.error('RPC function error:', error);
+          throw error;
+        }
+        
+        console.log('Database updated successfully via RPC function');
+        
+      } catch (rpcError) {
+        console.error('RPC function failed, trying direct update:', rpcError);
+        
+        // Fallback to direct update
+        const currentUrls = requestData.translated_file_urls || [];
+        const updatedUrls = [...currentUrls, ...uploadedUrls];
+        
+        const { error: updateError } = await supabase
+          .from('translation_requests')
+          .update({
+            translated_file_urls: updatedUrls,
+            status: 'completed',
+            delivery_date: new Date().toISOString(),
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', requestId);
+
+        if (updateError) {
+          console.error('Direct update error:', updateError);
+          throw new Error(`Database update failed: ${updateError.message}`);
+        }
+        
+        console.log('Database updated successfully via direct update');
       }
-      
-      console.log('Database updated successfully');
 
       onUpdate();
       alert('Documents uploaded successfully!');
@@ -93,6 +123,7 @@ const DocumentManagement: React.FC<DocumentManagementProps> = ({
         errorMessage += 'Unknown error occurred';
       }
       
+      console.error('Final error details:', error);
       alert(errorMessage);
     } finally {
       setIsUploading(false);
