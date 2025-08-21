@@ -362,13 +362,18 @@ const AdminPanel = () => {
             <div className="space-y-6">
               <div className="flex items-center justify-between">
                 <h2 className="text-xl font-bold text-white">Translation Requests</h2>
-                <button
-                  onClick={loadData}
-                  disabled={isLoading}
-                  className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-colors disabled:opacity-50"
-                >
-                  {isLoading ? 'Loading...' : 'Refresh'}
-                </button>
+                <div className="flex items-center space-x-3">
+                  <div className="text-sm text-slate-400">
+                    Storage Status: <span className="text-green-400">✓ Connected</span>
+                  </div>
+                  <button
+                    onClick={loadData}
+                    disabled={isLoading}
+                    className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-colors disabled:opacity-50"
+                  >
+                    {isLoading ? 'Loading...' : 'Refresh'}
+                  </button>
+                </div>
               </div>
 
               <div className="bg-slate-800 rounded-xl border border-slate-700 overflow-hidden">

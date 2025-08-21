@@ -27,27 +27,41 @@ const DocumentManagement: React.FC<DocumentManagementProps> = ({
 
     setIsUploading(true);
     try {
+      console.log('Starting file upload process...', files.length, 'files');
+      
       const uploadPromises = Array.from(files).map(async (file) => {
         const fileName = `translated_${requestId}_${Date.now()}_${file.name}`;
+        
+        console.log('Uploading file:', fileName, 'Size:', file.size, 'bytes');
         
         const { data, error } = await supabase.storage
           .from('translated-documents')
           .upload(fileName, file);
 
-        if (error) throw error;
+        if (error) {
+          console.error('Upload error for file:', fileName, error);
+          throw error;
+        }
+        
+        console.log('File uploaded successfully:', data);
 
         const { data: publicUrl } = supabase.storage
           .from('translated-documents')
           .getPublicUrl(fileName);
+          
+        console.log('Public URL generated:', publicUrl.publicUrl);
 
         return publicUrl.publicUrl;
       });
 
       const uploadedUrls = await Promise.all(uploadPromises);
+      console.log('All files uploaded, URLs:', uploadedUrls);
       
       // Update the translation request with uploaded files
       const currentUrls = requestData.translated_file_urls || [];
       const updatedUrls = [...currentUrls, ...uploadedUrls];
+      
+      console.log('Updating database with URLs:', updatedUrls);
 
       const { error } = await supabase
         .from('translation_requests')
@@ -58,16 +72,34 @@ const DocumentManagement: React.FC<DocumentManagementProps> = ({
         })
         .eq('id', requestId);
 
-      if (error) throw error;
+      if (error) {
+        console.error('Database update error:', error);
+        throw error;
+      }
+      
+      console.log('Database updated successfully');
 
       onUpdate();
       alert('Documents uploaded successfully!');
 
     } catch (error) {
       console.error('Error uploading files:', error);
-      alert('Error uploading files');
+      
+      // More detailed error message
+      let errorMessage = 'Error uploading files: ';
+      if (error instanceof Error) {
+        errorMessage += error.message;
+      } else {
+        errorMessage += 'Unknown error occurred';
+      }
+      
+      alert(errorMessage);
     } finally {
       setIsUploading(false);
+      // Reset file input
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
     }
   };
 
