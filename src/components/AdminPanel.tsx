@@ -318,11 +318,6 @@ const AdminPanel = () => {
                 >
                   {item.icon}
                   <span className="font-medium">{item.name}</span>
-                  {item.badge && item.badge > 0 && (
-                    <span className="ml-auto bg-red-500 text-white text-xs px-2 py-1 rounded-full">
-                      {item.badge}
-                    </span>
-                  )}
                 </button>
               </li>
             ))}
@@ -803,10 +798,173 @@ const AdminPanel = () => {
           {activeTab === 'contacts' && (
             <div className="bg-slate-800 rounded-xl border border-slate-700 p-6">
               <h2 className="text-xl font-bold text-white mb-4">Contact Leads</h2>
-              <div className="text-center py-8">
-                <MessageSquare className="w-12 h-12 text-slate-400 mx-auto mb-4" />
-                <p className="text-slate-400">Contact leads management coming soon</p>
-                <p className="text-slate-500 text-sm">This feature is under development</p>
+              
+              {/* Stats Cards */}
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
+                <div className="bg-slate-700/50 rounded-xl p-4">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-slate-400 text-sm">Total Leads</span>
+                    <Users className="w-4 h-4 text-blue-400" />
+                  </div>
+                  <p className="text-white text-2xl font-bold">{leadsStats.totalLeads}</p>
+                </div>
+                
+                <div className="bg-slate-700/50 rounded-xl p-4">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-slate-400 text-sm">New</span>
+                    <AlertTriangle className="w-4 h-4 text-blue-400" />
+                  </div>
+                  <p className="text-white text-2xl font-bold">{leadsStats.newLeads}</p>
+                </div>
+                
+                <div className="bg-slate-700/50 rounded-xl p-4">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-slate-400 text-sm">Contacted</span>
+                    <Phone className="w-4 h-4 text-yellow-400" />
+                  </div>
+                  <p className="text-white text-2xl font-bold">{leadsStats.contactedLeads}</p>
+                </div>
+                
+                <div className="bg-slate-700/50 rounded-xl p-4">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-slate-400 text-sm">Converted</span>
+                    <CheckCircle className="w-4 h-4 text-green-400" />
+                  </div>
+                  <p className="text-white text-2xl font-bold">{leadsStats.convertedLeads}</p>
+                </div>
+                
+                <div className="bg-slate-700/50 rounded-xl p-4">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-slate-400 text-sm">Conversion</span>
+                    <TrendingUp className="w-4 h-4 text-purple-400" />
+                  </div>
+                  <p className="text-white text-2xl font-bold">{leadsStats.conversionRate}%</p>
+                </div>
+              </div>
+
+              {/* Leads Table */}
+              <div className="bg-slate-700/30 rounded-xl border border-slate-600 overflow-hidden">
+                <div className="overflow-x-auto">
+                  <table className="w-full">
+                    <thead className="bg-slate-700">
+                      <tr>
+                        <th className="text-left p-4 text-slate-300 font-semibold">Contact</th>
+                        <th className="text-left p-4 text-slate-300 font-semibold">Company</th>
+                        <th className="text-left p-4 text-slate-300 font-semibold">Service</th>
+                        <th className="text-left p-4 text-slate-300 font-semibold">Message</th>
+                        <th className="text-left p-4 text-slate-300 font-semibold">Status</th>
+                        <th className="text-left p-4 text-slate-300 font-semibold">Priority</th>
+                        <th className="text-left p-4 text-slate-300 font-semibold">Date</th>
+                        <th className="text-left p-4 text-slate-300 font-semibold">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {contactLeads.map((lead) => (
+                        <tr key={lead.id} className="border-t border-slate-600 hover:bg-slate-700/30">
+                          <td className="p-4">
+                            <div>
+                              <p className="text-white font-medium">{lead.full_name}</p>
+                              <div className="flex items-center space-x-2 mt-1">
+                                <Mail className="w-3 h-3 text-slate-400" />
+                                <p className="text-slate-400 text-sm">{lead.email}</p>
+                              </div>
+                              {lead.phone && (
+                                <div className="flex items-center space-x-2">
+                                  <Phone className="w-3 h-3 text-slate-400" />
+                                  <p className="text-slate-400 text-sm">{lead.phone}</p>
+                                </div>
+                              )}
+                            </div>
+                          </td>
+                          <td className="p-4">
+                            <p className="text-white">{lead.company || '-'}</p>
+                            {lead.estimated_value && (
+                              <p className="text-green-400 text-sm">{formatCurrency(lead.estimated_value)}</p>
+                            )}
+                          </td>
+                          <td className="p-4">
+                            <span className="bg-blue-500/20 text-blue-300 px-2 py-1 rounded text-xs">
+                              {lead.service || 'General'}
+                            </span>
+                          </td>
+                          <td className="p-4 max-w-xs">
+                            <p className="text-slate-300 text-sm line-clamp-2">{lead.message}</p>
+                            {lead.admin_notes && (
+                              <div className="mt-2 p-2 bg-slate-600/50 rounded text-xs">
+                                <p className="text-yellow-400 font-medium">Notes:</p>
+                                <p className="text-slate-300">{lead.admin_notes}</p>
+                              </div>
+                            )}
+                          </td>
+                          <td className="p-4">
+                            <select
+                              value={lead.status}
+                              onChange={(e) => updateLeadStatus(lead.id, e.target.value)}
+                              className={`px-3 py-1 rounded-full text-xs font-semibold border ${getLeadStatusColor(lead.status)} bg-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500`}
+                            >
+                              <option value="new">New</option>
+                              <option value="contacted">Contacted</option>
+                              <option value="qualified">Qualified</option>
+                              <option value="converted">Converted</option>
+                              <option value="closed">Closed</option>
+                            </select>
+                          </td>
+                          <td className="p-4">
+                            <select
+                              value={lead.priority}
+                              onChange={(e) => updateLeadPriority(lead.id, e.target.value)}
+                              className={`px-3 py-1 rounded-full text-xs font-semibold border ${getPriorityColor(lead.priority)} bg-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500`}
+                            >
+                              <option value="low">Low</option>
+                              <option value="medium">Medium</option>
+                              <option value="high">High</option>
+                              <option value="urgent">Urgent</option>
+                            </select>
+                          </td>
+                          <td className="p-4">
+                            <div>
+                              <p className="text-white text-sm">{formatDate(lead.created_at)}</p>
+                              <p className="text-slate-400 text-xs">
+                                {lead.source || 'website'}
+                              </p>
+                            </div>
+                          </td>
+                          <td className="p-4">
+                            <div className="flex items-center space-x-2">
+                              <button
+                                onClick={() => {
+                                  const notes = prompt('Add notes for this lead:', lead.admin_notes || '');
+                                  if (notes !== null) {
+                                    updateLeadNotes(lead.id, notes);
+                                  }
+                                }}
+                                className="text-blue-400 hover:text-blue-300 transition-colors bg-blue-500/20 p-2 rounded-lg"
+                                title="Add notes"
+                              >
+                                <MessageSquare className="w-4 h-4" />
+                              </button>
+                              <button
+                                onClick={() => deleteLead(lead.id)}
+                                className="text-red-400 hover:text-red-300 transition-colors"
+                                title="Delete lead"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+
+                {contactLeads.length === 0 && (
+                  <div className="p-8 text-center">
+                    <MessageSquare className="w-12 h-12 text-slate-400 mx-auto mb-4" />
+                    <p className="text-slate-400">No contact leads found</p>
+                    <p className="text-slate-500 text-sm">Leads will appear here when visitors submit the contact form</p>
+                  </div>
+                )}
               </div>
             </div>
           )}
