@@ -125,6 +125,15 @@ const AdminPanel = () => {
     convertedLeads: 0,
     conversionRate: 0
   });
+  const [contactLeads, setContactLeads] = useState([]);
+  const [leadsStats, setLeadsStats] = useState({
+    total_leads: 0,
+    new_leads: 0,
+    contacted_leads: 0,
+    qualified_leads: 0,
+    converted_leads: 0,
+    conversion_rate: 0
+  });
   const [stats, setStats] = useState<Stats>({
     totalRequests: 0,
     pendingRequests: 0,
