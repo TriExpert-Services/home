@@ -124,22 +124,24 @@ const Contact = () => {
     try {
       // 1. Save to database first
       const { data: dbLead, error: dbError } = await supabase
-        .rpc('create_contact_lead', [
-          formData.name,           // p_full_name (required)
-          formData.email,          // p_email (required)  
-          formData.message,        // p_message (required)
-          formData.company || null, // p_company (optional)
-          formData.service || null, // p_service (optional)
-          null,                    // p_phone (optional)
-          'website_form',          // p_source (optional)
-          null,                    // p_referrer (optional)
-          null,                    // p_ip_address (optional)
-          navigator.userAgent      // p_user_agent (optional)
-        ]);
+        .rpc('create_contact_lead', {
+          p_full_name: formData.name,
+          p_email: formData.email,
+          p_message: formData.message,
+          p_company: formData.company || null,
+          p_service: formData.service || null,
+          p_phone: formData.phone || null,
+          p_source: 'website_form',
+          p_referrer: null,
+          p_ip_address: null,
+          p_user_agent: navigator.userAgent
+        });
 
       if (dbError) {
         console.error('Database error:', dbError);
-        // Continue anyway - don't block user experience
+        setSubmitError(`Database error: ${dbError.message}`);
+        setIsSubmitting(false);
+        return;
       } else {
         console.log('Lead saved to database:', dbLead);
         setLeadId(dbLead);
