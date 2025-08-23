@@ -1,4 +1,3 @@
-import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
 const corsHeaders = {
@@ -24,7 +23,7 @@ interface ContactLead {
   actual_value?: number;
 }
 
-serve(async (req) => {
+Deno.serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders })
@@ -46,8 +45,10 @@ serve(async (req) => {
     const path = url.pathname
     const method = req.method
 
+    console.log(`Leads API Request: ${method} ${path}`)
+
     // GET /api-leads - List all contact leads
-    if (method === 'GET' && path === '/api-leads') {
+    if (method === 'GET' && (path === '/api-leads' || path === '/')) {
       const searchParams = url.searchParams
       const status = searchParams.get('status')
       const priority = searchParams.get('priority')
@@ -91,8 +92,10 @@ serve(async (req) => {
     }
 
     // POST /api-leads - Create new contact lead
-    if (method === 'POST' && path === '/api-leads') {
+    if (method === 'POST' && (path === '/api-leads' || path === '/')) {
       const leadData: ContactLead = await req.json()
+
+      console.log('Creating lead with data:', leadData)
 
       // Set automatic priority based on service
       const priority = leadData.service && ['consulting', 'security'].includes(leadData.service) 
@@ -111,7 +114,12 @@ serve(async (req) => {
         .select()
         .single()
 
-      if (error) throw error
+      if (error) {
+        console.error('Database error:', error)
+        throw error
+      }
+
+      console.log('Lead created successfully:', data)
 
       return new Response(JSON.stringify({ success: true, data }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -214,7 +222,7 @@ serve(async (req) => {
       })
     }
 
-    return new Response(JSON.stringify({ error: 'Not Found' }), {
+    return new Response(JSON.stringify({ error: 'Not Found', path, method }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       status: 404,
     })

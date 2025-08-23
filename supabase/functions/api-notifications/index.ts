@@ -1,4 +1,4 @@
-import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -19,16 +19,29 @@ interface SMSNotification {
   message: string;
 }
 
-serve(async (req) => {
+Deno.serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders })
   }
 
   try {
+    const supabase = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
+      {
+        auth: {
+          autoRefreshToken: false,
+          persistSession: false
+        }
+      }
+    )
+
     const url = new URL(req.url)
     const path = url.pathname
     const method = req.method
+
+    console.log(`Notifications API Request: ${method} ${path}`)
 
     // POST /api-notifications/email - Send email notification
     if (method === 'POST' && path === '/api-notifications/email') {
@@ -91,7 +104,7 @@ serve(async (req) => {
     }
 
     // POST /api-notifications/webhook - Webhook for N8N integrations
-    if (method === 'POST' && path === '/api-notifications/webhook') {
+    if (method === 'POST' && (path === '/api-notifications/webhook' || path === '/')) {
       const webhookData = await req.json()
       
       // Process the webhook data
@@ -114,7 +127,7 @@ serve(async (req) => {
       })
     }
 
-    return new Response(JSON.stringify({ error: 'Not Found' }), {
+    return new Response(JSON.stringify({ error: 'Not Found', path, method }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       status: 404,
     })

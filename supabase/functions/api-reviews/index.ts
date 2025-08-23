@@ -1,4 +1,3 @@
-import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
 const corsHeaders = {
@@ -7,7 +6,7 @@ const corsHeaders = {
   'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
 }
 
-serve(async (req) => {
+Deno.serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders })
@@ -29,8 +28,10 @@ serve(async (req) => {
     const path = url.pathname
     const method = req.method
 
+    console.log(`Reviews API Request: ${method} ${path}`)
+
     // GET /api-reviews - List all reviews
-    if (method === 'GET' && path === '/api-reviews') {
+    if (method === 'GET' && (path === '/api-reviews' || path === '/')) {
       const searchParams = url.searchParams
       const approved = searchParams.get('approved')
       const featured = searchParams.get('featured')
@@ -202,7 +203,7 @@ serve(async (req) => {
       })
     }
 
-    return new Response(JSON.stringify({ error: 'Not Found' }), {
+    return new Response(JSON.stringify({ error: 'Not Found', path, method }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       status: 404,
     })

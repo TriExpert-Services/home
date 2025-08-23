@@ -1,4 +1,3 @@
-import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
 const corsHeaders = {
@@ -25,7 +24,7 @@ interface TranslationRequest {
   total_cost?: number;
 }
 
-serve(async (req) => {
+Deno.serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders })
@@ -47,8 +46,10 @@ serve(async (req) => {
     const path = url.pathname
     const method = req.method
 
+    console.log(`API Request: ${method} ${path}`)
+
     // GET /api-translations - List all translation requests
-    if (method === 'GET' && path === '/api-translations') {
+    if (method === 'GET' && (path === '/api-translations' || path === '/')) {
       const { data, error } = await supabase
         .from('translation_requests')
         .select('*')
@@ -81,7 +82,7 @@ serve(async (req) => {
     }
 
     // POST /api-translations - Create new translation request
-    if (method === 'POST' && path === '/api-translations') {
+    if (method === 'POST' && (path === '/api-translations' || path === '/')) {
       const requestData: TranslationRequest = await req.json()
 
       const { data, error } = await supabase
@@ -210,7 +211,7 @@ serve(async (req) => {
       })
     }
 
-    return new Response(JSON.stringify({ error: 'Not Found' }), {
+    return new Response(JSON.stringify({ error: 'Not Found', path, method }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       status: 404,
     })

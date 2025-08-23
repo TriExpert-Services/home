@@ -153,19 +153,22 @@ const Contact = () => {
         lead_id: dbLead || 'unknown'
       };
 
-      Promise.all([
-        sendToN8N(contactData),
-        simulateApiCall()
-      ])
-        .then(() => {
-          setIsSubmitted(true);
-          setFormData({
-            name: '',
-            email: '',
-            company: '',
-            service: '',
-            message: ''
-          });
+        const { data: dbLead, error: dbError } = await supabase
+          .from('contact_leads')
+          .insert([{
+            full_name: formData.name,
+            email: formData.email,
+            message: formData.message,
+            company: formData.company || null,
+            service: formData.service || null,
+            phone: formData.phone || null,
+            source: 'website_form',
+            user_agent: navigator.userAgent,
+            status: 'new',
+            priority: formData.service && ['consulting', 'security'].includes(formData.service) ? 'high' : 'medium'
+          }])
+          .select()
+          .single();
           setTimeout(() => setIsSubmitted(false), 5000);
         })
         .catch((error) => {
