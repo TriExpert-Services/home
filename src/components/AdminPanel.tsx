@@ -122,96 +122,26 @@ const AdminPanel: React.FC = () => {
   const loadAllData = async () => {
     setIsLoading(true);
     setError(null);
-    console.log('🔄 Loading dashboard data...');
+    console.log('Loading all data...');
     
     try {
-      // Load translations statistics
-      const { data: translationsData, error: translationsError, count: translationsCount } = await supabase
-        .from('translation_requests')
-        .select('*', { count: 'exact' });
-
-      if (translationsError) {
-        console.error('❌ Translations error:', translationsError);
-        throw translationsError;
-      }
-
-      console.log('✅ Translations loaded:', translationsCount || 0, 'records');
-
-      // Load contact leads
-      const { data: leadsData, error: leadsError, count: leadsCount } = await supabase
-        .from('contact_leads')
-        .select('*', { count: 'exact' });
-
-      if (leadsError) {
-        console.warn('⚠️ Leads error (table may not exist):', leadsError);
-        // Don't throw error, just log warning
-      }
-
-      console.log('✅ Leads loaded:', leadsCount || 0, 'records');
-
-      // Load reviews
-      const { data: reviewsData, error: reviewsError, count: reviewsCount } = await supabase
-        .from('client_reviews')
-        .select('*', { count: 'exact' });
-
-      if (reviewsError) {
-        console.warn('⚠️ Reviews error (table may not exist):', reviewsError);
-        // Don't throw error, just log warning
-      }
-
-      console.log('✅ Reviews loaded:', reviewsCount || 0, 'records');
-
-      // Calculate statistics safely
-      const totalTranslations = translationsCount || 0;
-      const completedTranslations = translationsData?.filter(t => t.status === 'completed').length || 0;
-      const totalReviews = reviewsCount || 0;
-      const totalLeads = leadsCount || 0;
+      // Load data sequentially to avoid overwhelming Supabase
+      console.log('Loading translations...');
+      await loadTranslations();
       
-      // Calculate revenue from completed translations
-      const totalRevenue = translationsData?.reduce((sum, t) => {
-        return t.status === 'completed' ? sum + (t.total_cost || 0) : sum;
-      }, 0) || 0;
+      console.log('Loading reviews...');
+      await loadReviews();
       
-      // Calculate average rating
-      const averageRating = reviewsData && reviewsData.length > 0 
-        ? reviewsData.reduce((sum, r) => sum + (r.rating || 0), 0) / reviewsData.length 
-        : 0;
+      console.log('Loading contact leads...');
+      await loadContactLeads();
       
-      // Calculate conversion rate from leads
-      const conversionRate = leadsData && leadsData.length > 0 
-        ? (leadsData.filter(l => l.status === 'converted').length / leadsData.length) * 100 
-        : 0;
-
-      console.log('📊 Calculated Stats:', {
-        totalTranslations,
-        completedTranslations,
-        totalReviews,
-        totalLeads,
-        totalRevenue,
-        averageRating: averageRating.toFixed(1),
-        conversionRate: conversionRate.toFixed(1)
-      });
-
-      // Update states
-      setStats({
-        totalTranslations,
-        completedTranslations,
-        totalReviews,
-        totalLeads,
-        totalRevenue: parseFloat(totalRevenue.toFixed(2)),
-        averageRating: parseFloat(averageRating.toFixed(1)),
-        conversionRate: parseFloat(conversionRate.toFixed(1))
-      });
-
-      setTranslations(translationsData || []);
-      setContactLeads(leadsData || []);
-      setReviews(reviewsData || []);
-
-      console.log('✅ Dashboard data loaded successfully!');
-
+      console.log('Loading overview data...');
+      await loadOverviewData();
+      
+      console.log('All data loaded successfully');
     } catch (error) {
-      console.error('❌ Error loading dashboard data:', error);
-      setLoadError('Error loading dashboard data');
+      console.error('Error loading data:', error);
+      setError('Error loading dashboard data. Please refresh.');
     } finally {
       setIsLoading(false);
     }
@@ -296,11 +226,11 @@ const AdminPanel: React.FC = () => {
   };
 
   const loadTranslations = async () => {
+    console.log('Loading translations...');
     try {
-      console.log('Loading translations...');
-      const { data, error, count } = await supabase
+      const { data, error } = await supabase
         .from('translation_requests')
-        .select('*', { count: 'exact' })
+        .select('*')
         .order('created_at', { ascending: false });
 
       if (error) {
@@ -308,20 +238,8 @@ const AdminPanel: React.FC = () => {
         throw error;
       }
 
-      console.log('✅ Translations loaded successfully:', count || 0, 'translations');
+      console.log('Translations data:', data?.length || 0, 'items');
       setTranslations(data || []);
-      
-      // Calculate and update translation stats
-      const totalTranslations = count || 0;
-      const completedTranslations = data?.filter(t => t.status === 'completed').length || 0;
-      const totalRevenue = data?.reduce((sum, t) => {
-        return t.status === 'completed' ? sum + (t.total_cost || 0) : sum;
-      }, 0) || 0;
-      
-      setStats(prev => ({ 
-        ...prev, totalTranslations, completedTranslations, totalRevenue: parseFloat(totalRevenue.toFixed(2))
-      }));
-
     } catch (error) {
       console.error('Error loading translations:', error);
       setError('Error loading translations');
@@ -329,11 +247,11 @@ const AdminPanel: React.FC = () => {
   };
 
   const loadReviews = async () => {
+    console.log('Loading reviews...');
     try {
-      console.log('Loading reviews...');
-      const { data, error, count } = await supabase
+      const { data, error } = await supabase
         .from('client_reviews')
-        .select('*', { count: 'exact' })
+        .select('*')
         .order('created_at', { ascending: false });
 
       if (error) {
@@ -341,12 +259,8 @@ const AdminPanel: React.FC = () => {
         throw error;
       }
 
-      console.log('✅ Reviews loaded successfully:', count || 0, 'reviews');
+      console.log('Reviews data:', data?.length || 0, 'items');
       setReviews(data || []);
-      
-      // Update reviews count in stats
-      setStats(prev => ({ ...prev, totalReviews: count || 0 }));
-
     } catch (error) {
       console.error('Error loading reviews:', error);
       setError('Error loading reviews');
@@ -354,28 +268,23 @@ const AdminPanel: React.FC = () => {
   };
 
   const loadContactLeads = async () => {
+    console.log('Loading contact leads...');
     try {
-      console.log('Loading contact leads...');
-      const { data, error, count } = await supabase
+      const { data, error } = await supabase
         .from('contact_leads')
-        .select('*', { count: 'exact' })
+        .select('*')
         .order('created_at', { ascending: false });
 
       if (error) {
-        console.warn('⚠️ Contact leads error (table may not exist):', error);
-        setContactLeads([]);
-        return;
+        console.error('Contact leads error:', error);
+        throw error;
       }
 
-      console.log('✅ Contact leads loaded successfully:', count || 0, 'leads');
+      console.log('Contact leads data:', data?.length || 0, 'items');
       setContactLeads(data || []);
-      
-      // Update leads count in stats
-      setStats(prev => ({ ...prev, totalLeads: count || 0 }));
-
     } catch (error) {
-      console.warn('⚠️ Contact leads table might not exist yet:', error);
-      setContactLeads([]);
+      console.error('Error loading contact leads:', error);
+      setError('Error loading contact leads');
     }
   };
 
