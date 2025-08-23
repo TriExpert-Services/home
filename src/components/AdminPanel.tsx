@@ -1,8 +1,30 @@
 import React, { useState, useEffect } from 'react';
-import { Shield, Users, FileText, Star, Trash2, Edit, Eye, Download, ExternalLink, LogOut, RefreshCcw, Calendar, Clock, DollarSign, TrendingUp, AlertCircle, CheckCircle, X, Settings, BarChart3, MessageSquare, Phone, Mail, Building, Target } from 'lucide-react';
-  Shield, Users, FileText, Star, Trash2, Edit, Eye, Download, ExternalLink, LogOut, 
-  RefreshCcw, Calendar, Clock, DollarSign, TrendingUp, AlertCircle, CheckCircle, X, 
-  Settings, BarChart3, MessageSquare, Phone, Mail, Building, Target
+import { Shield, Users, FileText, Star, Trash2, Edit, Eye, Download, ExternalLink, LogOut, RefreshCcw, Calendar, Clock, DollarSign, TrendingUp, AlertCircle, CheckCircle, X, Settings,
+  BarChart3, 
+  Users, 
+  FileText, 
+  Settings, 
+  LogOut, 
+  Home,
+  MessageSquare,
+  TrendingUp,
+  Shield,
+  Globe,
+  Download,
+  Eye,
+  Trash2,
+  Mail,
+  Phone,
+  Building,
+  Flag,
+  Upload,
+  XCircle,
+  AlertTriangle
+} from 'lucide-react';
+import { 
+  Shield, Users, FileText, Star, Trash2, Edit, Eye, Download, ExternalLink, 
+  LogOut, RefreshCcw, Calendar, Clock, DollarSign, TrendingUp, AlertCircle, 
+  CheckCircle, X, Settings, BarChart3, Mail, Phone, Building, MessageSquare, Flag
 } from 'lucide-react';
 import { useAdmin } from '../contexts/AdminContext';
 import { supabase } from '../lib/supabase';
@@ -56,6 +78,11 @@ interface TranslationRequest {
   file_urls: string[] | null;
   status: string;
   total_cost: number | null;
+  quality_score?: number;
+  verification_link?: string;
+  verification_expires_at?: string;
+  delivery_date?: string;
+  translated_file_urls?: string[];
 }
 
 interface Stats {
@@ -81,6 +108,7 @@ interface ContactLead {
   admin_notes: string | null;
   estimated_value: number | null;
   follow_up_date: string | null;
+  source?: string;
 }
 
 interface LeadsStats {
