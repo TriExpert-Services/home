@@ -61,6 +61,7 @@ const AdminPanel = () => {
   const { user, logout } = useAdmin();
   const [activeTab, setActiveTab] = useState('dashboard');
   const [translationRequests, setTranslationRequests] = useState<TranslationRequest[]>([]);
+  const [reviews, setReviews] = useState<any[]>([]);
   const [stats, setStats] = useState<Stats>({
     totalRequests: 0,
     pendingRequests: 0,
@@ -75,7 +76,16 @@ const AdminPanel = () => {
 
   useEffect(() => {
     loadData();
+    if (activeTab === 'reviews') {
+      loadReviews();
+    }
   }, []);
+
+  useEffect(() => {
+    if (activeTab === 'reviews') {
+      loadReviews();
+    }
+  }, [activeTab]);
 
   const loadData = async () => {
     setIsLoading(true);
@@ -190,6 +200,7 @@ const AdminPanel = () => {
   const sidebarItems = [
     { id: 'dashboard', name: 'Dashboard', icon: <BarChart3 className="w-5 h-5" /> },
     { id: 'translations', name: 'Translations', icon: <FileText className="w-5 h-5" /> },
+    { id: 'reviews', name: 'Reviews', icon: <Star className="w-5 h-5" /> },
     { id: 'contacts', name: 'Contact Leads', icon: <MessageSquare className="w-5 h-5" /> },
     { id: 'settings', name: 'Settings', icon: <Settings className="w-5 h-5" /> }
   ];
