@@ -465,6 +465,11 @@ const AdminPanel = () => {
           </div>
         </div>
       </div>
+              {leadsStats.new_leads > 0 && (
+                <span className="bg-red-500 text-white text-xs px-2 py-1 rounded-full ml-auto">
+                  {leadsStats.new_leads}
+                </span>
+              )}
 
       {/* Main Content */}
       <div className="flex-1 flex flex-col">
