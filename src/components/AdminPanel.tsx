@@ -29,6 +29,37 @@ import { useAdmin } from '../contexts/AdminContext';
 import { supabase } from '../lib/supabase';
 import DocumentManagement from './DocumentManagement';
 
+// Contact Lead interfaces
+interface ContactLead {
+  id: string;
+  created_at: string;
+  full_name: string;
+  email: string;
+  company?: string;
+  phone?: string;
+  service?: string;
+  message: string;
+  status: 'new' | 'contacted' | 'qualified' | 'converted' | 'closed';
+  priority: 'low' | 'medium' | 'high' | 'urgent';
+  admin_notes?: string;
+  follow_up_date?: string;
+  estimated_value?: number;
+  actual_value?: number;
+}
+
+interface ContactLeadStats {
+  total_leads: number;
+  new_leads: number;
+  contacted_leads: number;
+  qualified_leads: number;
+  converted_leads: number;
+  leads_last_30_days: number;
+  leads_last_7_days: number;
+  avg_estimated_value: number;
+  total_revenue_from_leads: number;
+  conversion_rate: number;
+}
+
 interface TranslationRequest {
   id: string;
   created_at: string;
@@ -102,6 +133,19 @@ const AdminPanel = () => {
     avgRequestValue: 0,
     requestsThisMonth: 0
   });
+  const [contactLeads, setContactLeads] = useState<ContactLead[]>([]);
+  const [leadsStats, setLeadsStats] = useState<ContactLeadStats>({
+    total_leads: 0,
+    new_leads: 0,
+    contacted_leads: 0,
+    qualified_leads: 0,
+    converted_leads: 0,
+    leads_last_30_days: 0,
+    leads_last_7_days: 0,
+    avg_estimated_value: 0,
+    total_revenue_from_leads: 0,
+    conversion_rate: 0
+  });
   const [isLoading, setIsLoading] = useState(false);
   const [selectedRequestForDocuments, setSelectedRequestForDocuments] = useState<string | null>(null);
   const [selectedRequestData, setSelectedRequestData] = useState<any>(null);
@@ -122,8 +166,43 @@ const AdminPanel = () => {
     }
     if (activeTab === 'contacts') {
       loadContactLeads();
+    } else if (activeTab === 'contact-leads') {
+      loadContactLeads();
     }
   }, [activeTab]);
+
+  const loadContactLeads = async () => {
+    setIsLoading(true);
+    try {
+      // Load contact leads
+      const { data: leads, error: leadsError } = await supabase
+        .from('contact_leads')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (leadsError) throw leadsError;
+      setContactLeads(leads || []);
+
+      // Load stats
+      try {
+        const { data: stats, error: statsError } = await supabase
+          .from('contact_leads_stats')
+          .select('*')
+          .single();
+
+        if (!statsError && stats) {
+          setLeadsStats(stats);
+        }
+      } catch (statsError) {
+        console.warn('Stats view might not exist yet:', statsError);
+      }
+
+    } catch (error) {
+      console.error('Error loading contact leads:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const loadData = async () => {
     setIsLoading(true);
