@@ -153,34 +153,46 @@ const Contact = () => {
         lead_id: dbLead || 'unknown'
       };
 
-        const { data: dbLead, error: dbError } = await supabase
-          .from('contact_leads')
-          .insert([{
-            full_name: formData.name,
-            email: formData.email,
-            message: formData.message,
-            company: formData.company || null,
-            service: formData.service || null,
-            phone: formData.phone || null,
-            source: 'website_form',
-            user_agent: navigator.userAgent,
-            status: 'new',
-            priority: formData.service && ['consulting', 'security'].includes(formData.service) ? 'high' : 'medium'
-          }])
-          .select()
-          .single();
-          setTimeout(() => setIsSubmitted(false), 5000);
-        })
-        .catch((error) => {
-          setSubmitError(error.message);
-        })
-        .finally(() => {
-          setIsSubmitting(false);
-        });
+      await sendToN8N(contactData);
+
+      // 3. Alternative database save method
+      const { data: dbLead2, error: dbError2 } = await supabase
+        .from('contact_leads')
+        .insert([{
+          full_name: formData.name,
+          email: formData.email,
+          message: formData.message,
+          company: formData.company || null,
+          service: formData.service || null,
+          phone: formData.phone || null,
+          source: 'website_form',
+          user_agent: navigator.userAgent,
+          status: 'new',
+          priority: formData.service && ['consulting', 'security'].includes(formData.service) ? 'high' : 'medium'
+        }])
+        .select()
+        .single();
+
+      if (dbError2) {
+        console.error('Alternative database error:', dbError2);
+      }
+
+      // Success
+      setIsSubmitted(true);
+      setFormData({
+        name: '',
+        email: '',
+        company: '',
+        service: '',
+        message: ''
+      });
+      
+      setTimeout(() => setIsSubmitted(false), 5000);
 
     } catch (error) {
       console.error('Contact form error:', error);
       setSubmitError('Error processing your request. Please try again.');
+    } finally {
       setIsSubmitting(false);
     }
   };
