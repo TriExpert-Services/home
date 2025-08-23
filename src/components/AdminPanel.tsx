@@ -57,11 +57,43 @@ interface Stats {
   requestsThisMonth: number;
 }
 
+interface ContactLead {
+  id: string;
+  created_at: string;
+  full_name: string;
+  email: string;
+  company: string | null;
+  phone: string | null;
+  service: string | null;
+  message: string;
+  status: string;
+  priority: string;
+  admin_notes: string | null;
+  estimated_value: number | null;
+  follow_up_date: string | null;
+}
+
+interface LeadsStats {
+  totalLeads: number;
+  newLeads: number;
+  contactedLeads: number;
+  convertedLeads: number;
+  conversionRate: number;
+}
+
 const AdminPanel = () => {
   const { user, logout } = useAdmin();
   const [activeTab, setActiveTab] = useState('dashboard');
   const [translationRequests, setTranslationRequests] = useState<TranslationRequest[]>([]);
   const [reviews, setReviews] = useState<any[]>([]);
+  const [contactLeads, setContactLeads] = useState<ContactLead[]>([]);
+  const [leadsStats, setLeadsStats] = useState<LeadsStats>({
+    totalLeads: 0,
+    newLeads: 0,
+    contactedLeads: 0,
+    convertedLeads: 0,
+    conversionRate: 0
+  });
   const [stats, setStats] = useState<Stats>({
     totalRequests: 0,
     pendingRequests: 0,
@@ -79,11 +111,17 @@ const AdminPanel = () => {
     if (activeTab === 'reviews') {
       loadReviews();
     }
+    if (activeTab === 'contacts') {
+      loadContactLeads();
+    }
   }, []);
 
   useEffect(() => {
     if (activeTab === 'reviews') {
       loadReviews();
+    }
+    if (activeTab === 'contacts') {
+      loadContactLeads();
     }
   }, [activeTab]);
 
