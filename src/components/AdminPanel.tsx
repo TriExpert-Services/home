@@ -1,11 +1,24 @@
 import React, { useState, useEffect } from 'react';
 import {
-  Shield, Users, FileText, Star, Trash2, Edit, Eye, Download, ExternalLink,
-  LogOut, RefreshCcw, Calendar, Clock, DollarSign, TrendingUp, AlertCircle,
-  CheckCircle, X, Settings, BarChart3, MessageSquare, Phone, Mail, Building,
-  Target, Home, Globe, Plus, Search, Filter, SortAsc, SortDesc, MoreVertical,
-  Send, MapPin, User, ChevronLeft, ChevronRight, ChevronDown, ChevronUp,
-  XCircle, AlertTriangle
+  Shield, Users, FileText, Star, Trash2, Edit, Eye, Download, ExternalLink, LogOut,
+  RefreshCcw, Calendar, Clock, DollarSign, TrendingUp, AlertCircle, CheckCircle, X,
+  Settings, BarChart3, MessageSquare, Phone, Mail, Building, Target, Home, Globe
+} from 'lucide-react';
+import {
+  Eye,
+  Trash2,
+  Mail,
+  Phone,
+  Building,
+  Flag,
+  Upload,
+  XCircle,
+  AlertTriangle
+} from 'lucide-react';
+import { 
+  Shield, Users, FileText, Star, Trash2, Edit, Eye, Download, ExternalLink, 
+  LogOut, RefreshCcw, Calendar, Clock, DollarSign, TrendingUp, AlertCircle, 
+  CheckCircle, X, Settings, BarChart3, Mail, Phone, Building, MessageSquare, Flag
 } from 'lucide-react';
 import { useAdmin } from '../contexts/AdminContext';
 import { supabase } from '../lib/supabase';
@@ -113,6 +126,7 @@ const AdminPanel = () => {
     convertedLeads: 0,
     conversionRate: 0
   });
+  const [contactLeads, setContactLeads] = useState([]);
   const [leadsStats, setLeadsStats] = useState({
     total_leads: 0,
     new_leads: 0,
