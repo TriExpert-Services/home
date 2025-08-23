@@ -126,11 +126,9 @@ const Contact = () => {
         .rpc('create_contact_lead', {
           p_full_name: formData.name,
           p_email: formData.email,
-          p_company: formData.company || null,
-          p_service: formData.service || null,
           p_message: formData.message,
-          p_phone: null,
-          p_source: 'website_form'
+          p_company: formData.company || null,
+          p_service: formData.service || null
         });
 
       if (dbError) {
