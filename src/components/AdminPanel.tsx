@@ -7,11 +7,6 @@ import {
   Send, MapPin, User, ChevronLeft, ChevronRight, ChevronDown, ChevronUp,
   XCircle, AlertTriangle
 } from 'lucide-react';
-import { 
-  Shield, Users, FileText, Star, Trash2, Edit, Eye, Download, ExternalLink, 
-  LogOut, RefreshCcw, Calendar, Clock, DollarSign, TrendingUp, AlertCircle, 
-  CheckCircle, X, Settings, BarChart3, Mail, Phone, Building, MessageSquare, Flag
-} from 'lucide-react';
 import { useAdmin } from '../contexts/AdminContext';
 import { supabase } from '../lib/supabase';
 import DocumentManagement from './DocumentManagement';
