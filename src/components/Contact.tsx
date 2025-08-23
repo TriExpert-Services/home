@@ -31,6 +31,7 @@ const Contact = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
+  const [leadId, setLeadId] = useState<string | null>(null);
 
   const validateForm = (): boolean => {
     const newErrors: FormErrors = {};
@@ -108,7 +109,7 @@ const Contact = () => {
     setIsSubmitting(true);
     
     // Prepare data for N8N
-    const contactData = {
+    const baseContactData = {
       full_name: formData.name,
       email: formData.email,
       company: formData.company || null,
@@ -119,7 +120,33 @@ const Contact = () => {
       language: t('contact.phone') === 'Phone' ? 'en' : 'es' // Detect language
     };
 
-    // Send to N8N first, then simulate success
+    try {
+      // 1. Save to database first
+      const { data: dbLead, error: dbError } = await supabase
+        .rpc('create_contact_lead', {
+          p_full_name: formData.name,
+          p_email: formData.email,
+          p_company: formData.company || null,
+          p_service: formData.service || null,
+          p_message: formData.message,
+          p_phone: null,
+          p_source: 'website_form'
+        });
+
+      if (dbError) {
+        console.error('Database error:', dbError);
+        // Continue anyway - don't block user experience
+      } else {
+        console.log('Lead saved to database:', dbLead);
+        setLeadId(dbLead);
+      }
+
+      // 2. Send to N8N (existing functionality)
+      const contactData = {
+        ...baseContactData,
+        lead_id: dbLead || 'unknown'
+      };
+
     Promise.all([
       sendToN8N(contactData),
       simulateApiCall()
@@ -141,6 +168,12 @@ const Contact = () => {
       .finally(() => {
         setIsSubmitting(false);
       });
+
+    } catch (error) {
+      console.error('Contact form error:', error);
+      setSubmitError('Error processing your request. Please try again.');
+      setIsSubmitting(false);
+    }
   };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {

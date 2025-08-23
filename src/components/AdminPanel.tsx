@@ -84,6 +84,8 @@ const AdminPanel = () => {
   useEffect(() => {
     if (activeTab === 'reviews') {
       loadReviews();
+    } else if (activeTab === 'contacts') {
+      loadContactLeads();
     }
   }, [activeTab]);
 
