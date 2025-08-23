@@ -133,19 +133,6 @@ const AdminPanel = () => {
     avgRequestValue: 0,
     requestsThisMonth: 0
   });
-  const [contactLeads, setContactLeads] = useState<ContactLead[]>([]);
-  const [leadsStats, setLeadsStats] = useState<ContactLeadStats>({
-    total_leads: 0,
-    new_leads: 0,
-    contacted_leads: 0,
-    qualified_leads: 0,
-    converted_leads: 0,
-    leads_last_30_days: 0,
-    leads_last_7_days: 0,
-    avg_estimated_value: 0,
-    total_revenue_from_leads: 0,
-    conversion_rate: 0
-  });
   const [isLoading, setIsLoading] = useState(false);
   const [selectedRequestForDocuments, setSelectedRequestForDocuments] = useState<string | null>(null);
   const [selectedRequestData, setSelectedRequestData] = useState<any>(null);
