@@ -99,6 +99,7 @@ const Contact = () => {
   };
 
   const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSubmitError(null);
     
@@ -119,6 +120,33 @@ const Contact = () => {
       created_at: new Date().toISOString(),
       language: t('contact.phone') === 'Phone' ? 'en' : 'es' // Detect language
     };
+
+    try {
+      // 1. Save to database first
+      const { data: dbLead, error: dbError } = await supabase
+        .rpc('create_contact_lead', {
+          p_full_name: formData.name,
+          p_email: formData.email,
+          p_company: formData.company || null,
+          p_service: formData.service || null,
+          p_message: formData.message,
+          p_phone: null,
+          p_source: 'website_form'
+        });
+
+      if (dbError) {
+        console.error('Database error:', dbError);
+        // Continue anyway - don't block user experience
+      } else {
+        console.log('Lead saved to database:', dbLead);
+        setLeadId(dbLead);
+      }
+
+      // 2. Send to N8N (existing functionality)
+      const contactData = {
+        ...baseContactData,
+        lead_id: dbLead || 'unknown'
+      };
 
     try {
       // 1. Save to database first
@@ -168,6 +196,12 @@ const Contact = () => {
       .finally(() => {
         setIsSubmitting(false);
       });
+
+    } catch (error) {
+      console.error('Contact form error:', error);
+      setSubmitError('Error processing your request. Please try again.');
+      setIsSubmitting(false);
+    }
 
     } catch (error) {
       console.error('Contact form error:', error);
