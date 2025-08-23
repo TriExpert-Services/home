@@ -84,8 +84,6 @@ const AdminPanel = () => {
   useEffect(() => {
     if (activeTab === 'reviews') {
       loadReviews();
-    } else if (activeTab === 'contacts') {
-      loadContactLeads();
     }
   }, [activeTab]);
 
@@ -320,6 +318,11 @@ const AdminPanel = () => {
                 >
                   {item.icon}
                   <span className="font-medium">{item.name}</span>
+                  {item.badge && item.badge > 0 && (
+                    <span className="ml-auto bg-red-500 text-white text-xs px-2 py-1 rounded-full">
+                      {item.badge}
+                    </span>
+                  )}
                 </button>
               </li>
             ))}
