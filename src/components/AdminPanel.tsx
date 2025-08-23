@@ -1,14 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { 
+import {
   Shield, Users, FileText, Star, Trash2, Edit, Eye, Download, ExternalLink, LogOut,
   RefreshCcw, Calendar, Clock, DollarSign, TrendingUp, AlertCircle, CheckCircle, X,
-  Settings, BarChart3, MessageSquare, Phone, Mail, Building, Target,
-  Home,
-  MessageSquare,
-  TrendingUp,
-  Shield,
-  Globe,
-  Download,
+  Settings, BarChart3, MessageSquare, Phone, Mail, Building, Target, Home, Globe
+} from 'lucide-react';
   Eye,
   Trash2,
   Mail,
