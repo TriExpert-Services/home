@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Shield, Users, FileText, Star, Trash2, Edit, Eye, Download, ExternalLink, LogOut, RefreshCcw, Calendar, Clock, DollarSign, TrendingUp, AlertCircle, CheckCircle, X, Settings } from 'lucide-react';
+import { Shield, Users, FileText, Star, Trash2, Edit, Eye, Download, ExternalLink, LogOut, RefreshCcw, Calendar, Clock, DollarSign, TrendingUp, AlertCircle, CheckCircle, X, Settings,
   BarChart3, 
   Users, 
   FileText, 
@@ -398,6 +398,92 @@ const AdminPanel = () => {
       change: '+25%'
     }
   ];
+
+  const updateLeadStatus = async (leadId: string, newStatus: string) => {
+    try {
+      const { error } = await supabase
+        .from('contact_leads')
+        .update({ status: newStatus })
+        .eq('id', leadId);
+
+      if (error) throw error;
+      
+      // Reload data to reflect changes
+      loadContactLeads();
+    } catch (error) {
+      console.error('Error updating lead status:', error);
+    }
+  };
+
+  const updateLeadPriority = async (leadId: string, newPriority: string) => {
+    try {
+      const { error } = await supabase
+        .from('contact_leads')
+        .update({ priority: newPriority })
+        .eq('id', leadId);
+
+      if (error) throw error;
+      
+      // Reload data to reflect changes
+      loadContactLeads();
+    } catch (error) {
+      console.error('Error updating lead priority:', error);
+    }
+  };
+
+  const updateLeadNotes = async (leadId: string, notes: string) => {
+    try {
+      const { error } = await supabase
+        .from('contact_leads')
+        .update({ admin_notes: notes })
+        .eq('id', leadId);
+
+      if (error) throw error;
+      
+      // Reload data to reflect changes
+      loadContactLeads();
+    } catch (error) {
+      console.error('Error updating lead notes:', error);
+    }
+  };
+
+  const deleteLead = async (leadId: string) => {
+    if (!confirm('Are you sure you want to delete this lead?')) return;
+
+    try {
+      const { error } = await supabase
+        .from('contact_leads')
+        .delete()
+        .eq('id', leadId);
+
+      if (error) throw error;
+      
+      loadContactLeads();
+    } catch (error) {
+      console.error('Error deleting lead:', error);
+    }
+  };
+
+  const getLeadStatusColor = (status: string) => {
+    const colors = {
+      new: 'bg-blue-500/20 text-blue-300 border-blue-500/30',
+      contacted: 'bg-yellow-500/20 text-yellow-300 border-yellow-500/30',
+      qualified: 'bg-purple-500/20 text-purple-300 border-purple-500/30',
+      converted: 'bg-green-500/20 text-green-300 border-green-500/30',
+      closed: 'bg-red-500/20 text-red-300 border-red-500/30'
+    };
+    return colors[status as keyof typeof colors] || colors.new;
+  };
+
+  const getPriorityColor = (priority: string) => {
+    const colors = {
+      low: 'bg-gray-500/20 text-gray-300 border-gray-500/30',
+      medium: 'bg-yellow-500/20 text-yellow-300 border-yellow-500/30',
+      high: 'bg-orange-500/20 text-orange-300 border-orange-500/30',
+      urgent: 'bg-red-500/20 text-red-300 border-red-500/30'
+    };
+    return colors[priority as keyof typeof colors] || colors.medium;
+  };
 
   return (
     <div className="min-h-screen bg-slate-900 flex">
