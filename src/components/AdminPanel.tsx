@@ -1,5 +1,34 @@
 import React, { useState, useEffect } from 'react';
-import { Shield, Users, FileText, Star, Trash2, Edit, Eye, Download, ExternalLink, LogOut, RefreshCcw, Calendar, Clock, DollarSign, TrendingUp, AlertCircle, CheckCircle, X, Settings, BarChart3, MessageSquare, Phone, Mail, Building, Target, Home, Globe, Upload, XCircle, AlertTriangle } from 'lucide-react';
+import { 
+  Shield, Users, FileText, Star, Trash2, Edit, Eye, Download, ExternalLink, LogOut,
+  RefreshCcw, Calendar, Clock, DollarSign, TrendingUp, AlertCircle, CheckCircle, X,
+  Settings, BarChart3, MessageSquare, Phone, Mail, Building, Target,
+  BarChart3, 
+  Users, 
+  FileText, 
+  Settings, 
+  LogOut, 
+  Home,
+  MessageSquare,
+  TrendingUp,
+  Shield,
+  Globe,
+  Download,
+  Eye,
+  Trash2,
+  Mail,
+  Phone,
+  Building,
+  Flag,
+  Upload,
+  XCircle,
+  AlertTriangle
+} from 'lucide-react';
+import { 
+  Shield, Users, FileText, Star, Trash2, Edit, Eye, Download, ExternalLink, 
+  LogOut, RefreshCcw, Calendar, Clock, DollarSign, TrendingUp, AlertCircle, 
+  CheckCircle, X, Settings, BarChart3, Mail, Phone, Building, MessageSquare, Flag
+} from 'lucide-react';
 import { useAdmin } from '../contexts/AdminContext';
 import { supabase } from '../lib/supabase';
 import DocumentManagement from './DocumentManagement';
@@ -52,9 +81,9 @@ interface TranslationRequest {
   file_urls: string[] | null;
   status: string;
   total_cost: number | null;
+  quality_score?: number;
   verification_link?: string;
   verification_expires_at?: string;
-  quality_score?: number;
   delivery_date?: string;
   translated_file_urls?: string[];
 }
@@ -66,6 +95,23 @@ interface Stats {
   totalRevenue: number;
   avgRequestValue: number;
   requestsThisMonth: number;
+}
+
+interface ContactLead {
+  id: string;
+  created_at: string;
+  full_name: string;
+  email: string;
+  company: string | null;
+  phone: string | null;
+  service: string | null;
+  message: string;
+  status: string;
+  priority: string;
+  admin_notes: string | null;
+  estimated_value: number | null;
+  follow_up_date: string | null;
+  source?: string;
 }
 
 interface LeadsStats {
@@ -88,6 +134,15 @@ const AdminPanel = () => {
     contactedLeads: 0,
     convertedLeads: 0,
     conversionRate: 0
+  });
+  const [contactLeads, setContactLeads] = useState([]);
+  const [leadsStats, setLeadsStats] = useState({
+    total_leads: 0,
+    new_leads: 0,
+    contacted_leads: 0,
+    qualified_leads: 0,
+    converted_leads: 0,
+    conversion_rate: 0
   });
   const [stats, setStats] = useState<Stats>({
     totalRequests: 0,
