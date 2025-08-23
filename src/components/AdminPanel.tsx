@@ -8,16 +8,10 @@ import { Shield, Users, FileText, Star, Trash2, Edit, Eye, Download, ExternalLin
   Home,
   MessageSquare,
   TrendingUp,
-  Shield,
-  Globe,
-  Download,
-  Eye,
-  Trash2,
-  Mail,
 import { 
-  Shield, Users, FileText, Star, Trash2, Edit, Eye, Download, ExternalLink, 
-  LogOut, RefreshCcw, Calendar, Clock, DollarSign, TrendingUp, AlertCircle, 
-  CheckCircle, X, Settings, BarChart3, Mail, Phone, Building, MessageSquare, Flag
+  Shield, Users, FileText, Star, Trash2, Edit, Eye, Download, ExternalLink, LogOut, 
+  RefreshCcw, Calendar, Clock, DollarSign, TrendingUp, AlertCircle, CheckCircle, X, 
+  Settings, BarChart3, MessageSquare, Phone, Mail, Building, Target
 } from 'lucide-react';
 import { useAdmin } from '../contexts/AdminContext';
 import { supabase } from '../lib/supabase';
