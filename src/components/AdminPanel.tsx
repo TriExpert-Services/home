@@ -72,6 +72,7 @@ const AdminPanel = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [selectedRequestForDocuments, setSelectedRequestForDocuments] = useState<string | null>(null);
   const [selectedRequestData, setSelectedRequestData] = useState<any>(null);
+  const [reviews, setReviews] = useState<any[]>([]);
 
   useEffect(() => {
     loadData();
@@ -110,10 +111,57 @@ const AdminPanel = () => {
         requestsThisMonth
       });
 
+      // Load reviews
+      const { data: reviewData, error: reviewError } = await supabase
+        .from('client_reviews')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .limit(50);
+
+      if (!reviewError) {
+        setReviews(reviewData || []);
+      }
+
     } catch (error) {
       console.error('Error loading data:', error);
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const updateReviewStatus = async (reviewId: string, isApproved: boolean, isFeatured: boolean = false) => {
+    try {
+      const { error } = await supabase
+        .from('client_reviews')
+        .update({ 
+          is_approved: isApproved,
+          is_featured: isFeatured,
+          approved_at: isApproved ? new Date().toISOString() : null
+        })
+        .eq('id', reviewId);
+
+      if (error) throw error;
+      
+      loadData();
+    } catch (error) {
+      console.error('Error updating review status:', error);
+    }
+  };
+
+  const deleteReview = async (reviewId: string) => {
+    if (!confirm('Are you sure you want to delete this review?')) return;
+
+    try {
+      const { error } = await supabase
+        .from('client_reviews')
+        .delete()
+        .eq('id', reviewId);
+
+      if (error) throw error;
+      
+      loadData();
+    } catch (error) {
+      console.error('Error deleting review:', error);
     }
   };
 
@@ -191,6 +239,7 @@ const AdminPanel = () => {
     { id: 'dashboard', name: 'Dashboard', icon: <BarChart3 className="w-5 h-5" /> },
     { id: 'translations', name: 'Translations', icon: <FileText className="w-5 h-5" /> },
     { id: 'contacts', name: 'Contact Leads', icon: <MessageSquare className="w-5 h-5" /> },
+    { id: 'reviews', name: 'Reviews', icon: <Star className="w-5 h-5" /> },
     { id: 'settings', name: 'Settings', icon: <Settings className="w-5 h-5" /> }
   ];
 
