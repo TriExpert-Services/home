@@ -1,18 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import {
-  Shield, Users, FileText, Star, Trash2, Edit, Eye, Download, ExternalLink, LogOut,
-  RefreshCcw, Calendar, Clock, DollarSign, TrendingUp, AlertCircle, CheckCircle, X,
-  Settings, BarChart3, MessageSquare, Phone, Mail, Building, Target, Home, Globe
-} from 'lucide-react';
-  Eye,
-  Trash2,
-  Mail,
-  Phone,
-  Building,
-  Flag,
-  Upload,
-  XCircle,
-  AlertTriangle
+  Shield, Users, FileText, Star, Trash2, Edit, Eye, Download, ExternalLink,
+  LogOut, RefreshCcw, Calendar, Clock, DollarSign, TrendingUp, AlertCircle,
+  CheckCircle, X, Settings, BarChart3, MessageSquare, Phone, Mail, Building,
+  Target, Home, Globe, Plus, Search, Filter, SortAsc, SortDesc, MoreVertical,
+  Send, MapPin, User, ChevronLeft, ChevronRight, ChevronDown, ChevronUp,
+  XCircle, AlertTriangle
 } from 'lucide-react';
 import { 
   Shield, Users, FileText, Star, Trash2, Edit, Eye, Download, ExternalLink, 
