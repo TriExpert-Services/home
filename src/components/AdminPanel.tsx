@@ -1,14 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Shield, Users, FileText, Star, Trash2, Edit, Eye, Download, ExternalLink, LogOut, RefreshCcw, Calendar, Clock, DollarSign, TrendingUp, AlertCircle, CheckCircle, X, Settings,
-  BarChart3, 
-  Users, 
-  FileText, 
-  Settings, 
-  LogOut, 
-  Home,
-  MessageSquare,
-  TrendingUp,
-import { 
+import { Shield, Users, FileText, Star, Trash2, Edit, Eye, Download, ExternalLink, LogOut, RefreshCcw, Calendar, Clock, DollarSign, TrendingUp, AlertCircle, CheckCircle, X, Settings, BarChart3, MessageSquare, Phone, Mail, Building, Target } from 'lucide-react';
   Shield, Users, FileText, Star, Trash2, Edit, Eye, Download, ExternalLink, LogOut, 
   RefreshCcw, Calendar, Clock, DollarSign, TrendingUp, AlertCircle, CheckCircle, X, 
   Settings, BarChart3, MessageSquare, Phone, Mail, Building, Target
