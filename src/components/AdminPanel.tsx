@@ -67,10 +67,11 @@ interface ContactLead {
 
 const AdminPanel: React.FC = () => {
   const { user, logout } = useAdmin();
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState('overview');
+  const [selectedRequest, setSelectedRequest] = useState<any>(null);
   const [translationRequests, setTranslationRequests] = useState<TranslationRequest[]>([]);
-  const [selectedRequest, setSelectedRequest] = useState<TranslationRequest | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [reviews, setReviews] = useState<Review[]>([]);
@@ -90,6 +91,23 @@ const AdminPanel: React.FC = () => {
     conversion_rate: 0
   });
 
+  // Load initial data
+  useEffect(() => {
+    console.log('AdminPanel mounted, loading initial data...');
+    loadAllData();
+  }, []);
+
+  // Add refresh interval for real-time updates
+  useEffect(() => {
+    const interval = setInterval(() => {
+      if (activeTab === 'overview') {
+        loadOverviewData();
+      }
+    }, 30000); // Refresh every 30 seconds
+
+    return () => clearInterval(interval);
+  }, [activeTab]);
+
   // Load data when component mounts or tab changes
   useEffect(() => {
     if (activeTab === 'translations') {
@@ -100,6 +118,181 @@ const AdminPanel: React.FC = () => {
       loadContactLeads();
     }
   }, [activeTab]);
+
+  const loadAllData = async () => {
+    setIsLoading(true);
+    setError(null);
+    console.log('Loading all data...');
+    
+    try {
+      // Load data sequentially to avoid overwhelming Supabase
+      console.log('Loading translations...');
+      await loadTranslations();
+      
+      console.log('Loading reviews...');
+      await loadReviews();
+      
+      console.log('Loading contact leads...');
+      await loadContactLeads();
+      
+      console.log('Loading overview data...');
+      await loadOverviewData();
+      
+      console.log('All data loaded successfully');
+    } catch (error) {
+      console.error('Error loading data:', error);
+      setError('Error loading dashboard data. Please refresh.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const loadOverviewData = async () => {
+    console.log('Loading overview data...');
+    try {
+      // Get direct counts from translation_requests table
+      const { data: translations, error: translationsError } = await supabase
+        .from('translation_requests')
+        .select('*');
+
+      if (translationsError) {
+        console.error('Error loading translations:', translationsError);
+      } else {
+        console.log('Translations loaded:', translations?.length || 0);
+        const totalTranslations = translations?.length || 0;
+        const completedTranslations = translations?.filter(t => t.status === 'completed').length || 0;
+        const pendingTranslations = translations?.filter(t => t.status === 'pending').length || 0;
+        const totalRevenue = translations?.reduce((sum, t) => sum + (t.total_cost || 0), 0) || 0;
+        
+        setTranslationStats({
+          totalRequests: totalTranslations,
+          completed: completedTranslations,
+          pending: pendingTranslations,
+          totalRevenue: totalRevenue
+        });
+      }
+
+      // Get direct counts from contact_leads table
+      const { data: leads, error: leadsError } = await supabase
+        .from('contact_leads')
+        .select('*');
+        
+      if (leadsError) {
+        console.error('Error loading leads:', leadsError);
+      } else {
+        console.log('Leads loaded:', leads?.length || 0);
+        const totalLeads = leads?.length || 0;
+        const newLeads = leads?.filter(l => l.status === 'new').length || 0;
+        const convertedLeads = leads?.filter(l => l.status === 'converted').length || 0;
+        const conversionRate = totalLeads > 0 ? Math.round((convertedLeads / totalLeads) * 100) : 0;
+        
+        setLeadsStats({
+          total_leads: totalLeads,
+          new_leads: newLeads,
+          contacted_leads: leads?.filter(l => l.status === 'contacted').length || 0,
+          qualified_leads: leads?.filter(l => l.status === 'qualified').length || 0,
+          converted_leads: convertedLeads,
+          conversion_rate: conversionRate
+        });
+      }
+
+      // Get reviews stats
+      const { data: reviews, error: reviewsError } = await supabase
+        .from('client_reviews')
+        .select('*');
+        
+      if (reviewsError) {
+        console.error('Error loading reviews:', reviewsError);
+      } else {
+        console.log('Reviews loaded:', reviews?.length || 0);
+        const totalReviews = reviews?.length || 0;
+        const avgRating = totalReviews > 0 
+          ? Math.round((reviews?.reduce((sum, r) => sum + r.rating, 0) || 0) / totalReviews * 10) / 10
+          : 0;
+          
+        setReviewsStats({
+          totalReviews: totalReviews,
+          averageRating: avgRating,
+          pending: reviews?.filter(r => !r.is_approved).length || 0,
+          approved: reviews?.filter(r => r.is_approved).length || 0,
+          conversionRate: 0
+        });
+      }
+
+    } catch (error) {
+      console.error('Error loading overview data:', error);
+      setError('Error loading dashboard data');
+    }
+  };
+
+  const loadTranslations = async () => {
+    console.log('Loading translations...');
+    try {
+      const { data, error } = await supabase
+        .from('translation_requests')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        console.error('Translations error:', error);
+        throw error;
+      }
+
+      console.log('Translations data:', data?.length || 0, 'items');
+      setTranslations(data || []);
+    } catch (error) {
+      console.error('Error loading translations:', error);
+      setError('Error loading translations');
+    }
+  };
+
+  const loadReviews = async () => {
+    console.log('Loading reviews...');
+    try {
+      const { data, error } = await supabase
+        .from('client_reviews')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        console.error('Reviews error:', error);
+        throw error;
+      }
+
+      console.log('Reviews data:', data?.length || 0, 'items');
+      setReviews(data || []);
+    } catch (error) {
+      console.error('Error loading reviews:', error);
+      setError('Error loading reviews');
+    }
+  };
+
+  const loadContactLeads = async () => {
+    console.log('Loading contact leads...');
+    try {
+      const { data, error } = await supabase
+        .from('contact_leads')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        console.error('Contact leads error:', error);
+        throw error;
+      }
+
+      console.log('Contact leads data:', data?.length || 0, 'items');
+      setContactLeads(data || []);
+    } catch (error) {
+      console.error('Error loading contact leads:', error);
+      setError('Error loading contact leads');
+    }
+  };
+
+  // Manual refresh function
+  const handleRefresh = async () => {
+    console.log('Manual refresh triggered');
+    await loadAllData();
+  };
 
   const loadTranslationRequests = async () => {
     setIsLoading(true);
@@ -113,83 +306,6 @@ const AdminPanel: React.FC = () => {
       setTranslationRequests(data || []);
     } catch (error) {
       console.error('Error loading translation requests:', error);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const loadReviews = async () => {
-    setIsLoading(true);
-    try {
-      // Load reviews
-      const { data: reviewsData, error: reviewsError } = await supabase
-        .from('client_reviews')
-        .select(`
-          *,
-          translation_requests(full_name, document_type, total_cost)
-        `)
-        .order('created_at', { ascending: false });
-
-      if (reviewsError) throw reviewsError;
-      setReviews(reviewsData || []);
-
-      // Load review statistics
-      const { data: statsData, error: statsError } = await supabase
-        .rpc('get_review_stats');
-
-      if (statsError) throw statsError;
-      
-      if (statsData && statsData.length > 0) {
-        const stats = statsData[0];
-        setReviewsStats({
-          totalReviews: stats.total_reviews || 0,
-          averageRating: parseFloat(stats.average_rating) || 0,
-          pendingReviews: reviewsData?.filter(r => !r.is_approved).length || 0,
-          conversionRate: stats.total_reviews > 0 ? ((stats.total_reviews / 100) * 100) : 0
-        });
-      }
-    } catch (error) {
-      console.error('Error loading reviews:', error);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const loadContactLeads = async () => {
-    setIsLoading(true);
-    try {
-      // Load leads
-      const { data: leadsData, error: leadsError } = await supabase
-        .from('contact_leads')
-        .select('*')
-        .order('created_at', { ascending: false });
-
-      if (leadsError) throw leadsError;
-      setContactLeads(leadsData || []);
-
-      // Load leads statistics
-      const { data: statsData, error: statsError } = await supabase
-        .from('contact_leads_stats')
-        .select('*')
-        .single();
-
-      if (statsError) {
-        console.warn('Error loading leads stats:', statsError);
-        // Set default stats if view doesn't exist yet
-        setLeadsStats({
-          total_leads: leadsData?.length || 0,
-          new_leads: leadsData?.filter(l => l.status === 'new').length || 0,
-          contacted_leads: leadsData?.filter(l => l.status === 'contacted').length || 0,
-          qualified_leads: leadsData?.filter(l => l.status === 'qualified').length || 0,
-          converted_leads: leadsData?.filter(l => l.status === 'converted').length || 0,
-          conversion_rate: leadsData && leadsData.length > 0 ? 
-            ((leadsData.filter(l => l.status === 'converted').length / leadsData.length) * 100) : 0
-        });
-      } else if (statsData) {
-        setLeadsStats(statsData);
-      }
-    } catch (error) {
-      console.error('Error loading contact leads:', error);
     } finally {
       setIsLoading(false);
     }
@@ -253,18 +369,26 @@ const AdminPanel: React.FC = () => {
     }
   };
 
-  const updateLeadStatus = async (leadId: string, newStatus: string) => {
+  const updateLeadStatus = async (leadId: string, status: string, notes?: string) => {
     try {
+      const updateData: any = {
+        status: status
+      };
+      
+      if (notes !== undefined) {
+        updateData.admin_notes = notes;
+      }
+
       const { error } = await supabase
         .from('contact_leads')
-        .update({ status: newStatus })
+        .update(updateData)
         .eq('id', leadId);
 
       if (error) throw error;
       
       // Reload leads
       loadContactLeads();
-      alert(`Lead status updated to ${newStatus}`);
+      alert(`Lead status updated to ${status}`);
     } catch (error) {
       console.error('Error updating lead status:', error);
       alert('Error updating lead status');
@@ -459,18 +583,37 @@ const AdminPanel: React.FC = () => {
           {activeTab === 'overview' && (
             <div>
               <div className="flex items-center justify-between mb-8">
-                <div>
-                  <h1 className="text-3xl font-bold text-white mb-2">Dashboard Overview</h1>
-                  <p className="text-white/70">Welcome back, {user.email?.split('@')[0]}</p>
+                <h1 className="text-3xl font-bold text-white">Dashboard Overview</h1>
+                <div className="flex items-center space-x-4">
+                  <button
+                    onClick={handleRefresh}
+                    disabled={isLoading}
+                    className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-colors flex items-center space-x-2 disabled:opacity-50"
+                  >
+                    <RefreshCcw className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} />
+                    <span>Refresh</span>
+                  </button>
+                  <div className="text-slate-300 text-sm">
+                    Welcome back, {user?.email?.split('@')[0]}
+                  </div>
                 </div>
-                <button
-                  onClick={() => window.location.reload()}
-                  className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center space-x-2 transition-colors"
-                >
-                  <RefreshCcw className="w-4 h-4" />
-                  <span>Refresh</span>
-                </button>
               </div>
+
+              {/* Loading State */}
+              {isLoading && (
+                <div className="bg-slate-700/50 rounded-2xl p-8 text-center mb-6">
+                  <RefreshCcw className="w-8 h-8 text-blue-400 animate-spin mx-auto mb-4" />
+                  <p className="text-white">Loading dashboard data...</p>
+                </div>
+              )}
+              
+              {/* Error State */}
+              {error && (
+                <div className="bg-red-500/20 border border-red-500/30 rounded-2xl p-4 mb-6 text-red-300 flex items-center">
+                  <AlertCircle className="w-5 h-5 mr-3" />
+                  {error}
+                </div>
+              )}
 
               {/* Stats Cards */}
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
