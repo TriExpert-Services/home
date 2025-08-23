@@ -72,7 +72,6 @@ const AdminPanel = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [selectedRequestForDocuments, setSelectedRequestForDocuments] = useState<string | null>(null);
   const [selectedRequestData, setSelectedRequestData] = useState<any>(null);
-  const [reviews, setReviews] = useState<any[]>([]);
 
   useEffect(() => {
     loadData();
@@ -111,57 +110,10 @@ const AdminPanel = () => {
         requestsThisMonth
       });
 
-      // Load reviews
-      const { data: reviewData, error: reviewError } = await supabase
-        .from('client_reviews')
-        .select('*')
-        .order('created_at', { ascending: false })
-        .limit(50);
-
-      if (!reviewError) {
-        setReviews(reviewData || []);
-      }
-
     } catch (error) {
       console.error('Error loading data:', error);
     } finally {
       setIsLoading(false);
-    }
-  };
-
-  const updateReviewStatus = async (reviewId: string, isApproved: boolean, isFeatured: boolean = false) => {
-    try {
-      const { error } = await supabase
-        .from('client_reviews')
-        .update({ 
-          is_approved: isApproved,
-          is_featured: isFeatured,
-          approved_at: isApproved ? new Date().toISOString() : null
-        })
-        .eq('id', reviewId);
-
-      if (error) throw error;
-      
-      loadData();
-    } catch (error) {
-      console.error('Error updating review status:', error);
-    }
-  };
-
-  const deleteReview = async (reviewId: string) => {
-    if (!confirm('Are you sure you want to delete this review?')) return;
-
-    try {
-      const { error } = await supabase
-        .from('client_reviews')
-        .delete()
-        .eq('id', reviewId);
-
-      if (error) throw error;
-      
-      loadData();
-    } catch (error) {
-      console.error('Error deleting review:', error);
     }
   };
 
@@ -239,7 +191,6 @@ const AdminPanel = () => {
     { id: 'dashboard', name: 'Dashboard', icon: <BarChart3 className="w-5 h-5" /> },
     { id: 'translations', name: 'Translations', icon: <FileText className="w-5 h-5" /> },
     { id: 'contacts', name: 'Contact Leads', icon: <MessageSquare className="w-5 h-5" /> },
-    { id: 'reviews', name: 'Reviews', icon: <Star className="w-5 h-5" /> },
     { id: 'settings', name: 'Settings', icon: <Settings className="w-5 h-5" /> }
   ];
 
@@ -624,6 +575,161 @@ const AdminPanel = () => {
                     }}
                   />
                 </div>
+              </div>
+            </div>
+          )}
+
+          {activeTab === 'reviews' && (
+            <div className="space-y-6">
+              <div className="flex items-center justify-between">
+                <h2 className="text-xl font-bold text-white">Client Reviews</h2>
+                <div className="flex items-center space-x-3">
+                  <div className="text-sm text-slate-400">
+                    Total: {reviews.length} | Approved: {reviews.filter(r => r.is_approved).length}
+                  </div>
+                  <button
+                    onClick={loadData}
+                    disabled={isLoading}
+                    className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-colors disabled:opacity-50"
+                  >
+                    {isLoading ? 'Loading...' : 'Refresh'}
+                  </button>
+                </div>
+              </div>
+
+              <div className="bg-slate-800 rounded-xl border border-slate-700 overflow-hidden">
+                <div className="overflow-x-auto">
+                  <table className="w-full">
+                    <thead className="bg-slate-700">
+                      <tr>
+                        <th className="text-left p-4 text-slate-300 font-semibold">Review</th>
+                        <th className="text-left p-4 text-slate-300 font-semibold">Client</th>
+                        <th className="text-left p-4 text-slate-300 font-semibold">Rating</th>
+                        <th className="text-left p-4 text-slate-300 font-semibold">Status</th>
+                        <th className="text-left p-4 text-slate-300 font-semibold">Date</th>
+                        <th className="text-left p-4 text-slate-300 font-semibold">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {reviews.map((review) => (
+                        <tr key={review.id} className="border-t border-slate-700 hover:bg-slate-700/30">
+                          <td className="p-4">
+                            <div>
+                              {review.title && (
+                                <p className="text-white font-medium mb-1">{review.title}</p>
+                              )}
+                              <p className="text-slate-300 text-sm line-clamp-2 mb-2">
+                                {review.comment}
+                              </p>
+                              <div className="flex items-center space-x-2 text-xs">
+                                <span className="bg-blue-500/20 text-blue-300 px-2 py-1 rounded">
+                                  {review.service_type.replace('_', ' ')}
+                                </span>
+                                {review.is_featured && (
+                                  <span className="bg-yellow-500/20 text-yellow-300 px-2 py-1 rounded">
+                                    Featured
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                          </td>
+                          <td className="p-4">
+                            <div>
+                              <p className="text-white font-medium">
+                                {review.show_full_name 
+                                  ? review.client_name 
+                                  : `${review.client_name.split(' ')[0]} ${review.client_name.split(' ')[1]?.[0] || ''}.`
+                                }
+                              </p>
+                              <p className="text-slate-400 text-sm">{review.client_email}</p>
+                            </div>
+                          </td>
+                          <td className="p-4">
+                            <div className="flex items-center space-x-1">
+                              {[1, 2, 3, 4, 5].map((star) => (
+                                <Star
+                                  key={star}
+                                  className={`w-4 h-4 ${
+                                    star <= review.rating
+                                      ? 'text-yellow-400 fill-yellow-400'
+                                      : 'text-slate-500'
+                                  }`}
+                                />
+                              ))}
+                              <span className="text-white ml-2">{review.rating}/5</span>
+                            </div>
+                          </td>
+                          <td className="p-4">
+                            <div className="flex items-center space-x-2">
+                              <span className={`px-3 py-1 rounded-full text-xs font-semibold ${
+                                review.is_approved 
+                                  ? 'bg-green-500/20 text-green-300' 
+                                  : 'bg-yellow-500/20 text-yellow-300'
+                              }`}>
+                                {review.is_approved ? 'Approved' : 'Pending'}
+                              </span>
+                            </div>
+                          </td>
+                          <td className="p-4">
+                            <p className="text-white text-sm">{formatDate(review.created_at)}</p>
+                          </td>
+                          <td className="p-4">
+                            <div className="flex items-center space-x-2">
+                              {!review.is_approved && (
+                                <button
+                                  onClick={() => updateReviewStatus(review.id, true, false)}
+                                  className="bg-green-600 hover:bg-green-700 text-white px-3 py-1 rounded text-xs transition-colors"
+                                  title="Approve review"
+                                >
+                                  Approve
+                                </button>
+                              )}
+                              
+                              {review.is_approved && (
+                                <button
+                                  onClick={() => updateReviewStatus(review.id, true, !review.is_featured)}
+                                  className={`px-3 py-1 rounded text-xs transition-colors ${
+                                    review.is_featured
+                                      ? 'bg-yellow-600 hover:bg-yellow-700 text-white'
+                                      : 'bg-blue-600 hover:bg-blue-700 text-white'
+                                  }`}
+                                  title={review.is_featured ? 'Remove from featured' : 'Add to featured'}
+                                >
+                                  {review.is_featured ? 'Unfeature' : 'Feature'}
+                                </button>
+                              )}
+                              
+                              {review.is_approved && (
+                                <button
+                                  onClick={() => updateReviewStatus(review.id, false, false)}
+                                  className="bg-orange-600 hover:bg-orange-700 text-white px-3 py-1 rounded text-xs transition-colors"
+                                  title="Unapprove review"
+                                >
+                                  Unapprove
+                                </button>
+                              )}
+                              
+                              <button
+                                onClick={() => deleteReview(review.id)}
+                                className="text-red-400 hover:text-red-300 transition-colors"
+                                title="Delete review"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+
+                {reviews.length === 0 && (
+                  <div className="p-8 text-center">
+                    <Star className="w-12 h-12 text-slate-400 mx-auto mb-4" />
+                    <p className="text-slate-400">No reviews found</p>
+                  </div>
+                )}
               </div>
             </div>
           )}
