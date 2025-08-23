@@ -127,6 +127,56 @@ const AdminPanel = () => {
     }
   };
 
+  const loadReviews = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('client_reviews')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      setReviews(data || []);
+    } catch (error) {
+      console.error('Error loading reviews:', error);
+    }
+  };
+
+  const updateReviewStatus = async (reviewId: string, isApproved: boolean, isFeatured: boolean) => {
+    try {
+      const { error } = await supabase
+        .from('client_reviews')
+        .update({ 
+          is_approved: isApproved,
+          is_featured: isFeatured
+        })
+        .eq('id', reviewId);
+
+      if (error) throw error;
+      
+      // Reload reviews to reflect changes
+      loadReviews();
+    } catch (error) {
+      console.error('Error updating review status:', error);
+    }
+  };
+
+  const deleteReview = async (reviewId: string) => {
+    if (!confirm('Are you sure you want to delete this review?')) return;
+
+    try {
+      const { error } = await supabase
+        .from('client_reviews')
+        .delete()
+        .eq('id', reviewId);
+
+      if (error) throw error;
+      
+      loadReviews();
+    } catch (error) {
+      console.error('Error deleting review:', error);
+    }
+  };
+
   const updateRequestStatus = async (requestId: string, newStatus: string) => {
     try {
       const { error } = await supabase
