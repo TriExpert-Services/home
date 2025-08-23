@@ -1,9 +1,49 @@
 import React from 'react';
-import { ArrowRight, Star, Users, Award, Play } from 'lucide-react';
+import { ArrowRight, Star, Users, Award, Play, MessageSquare } from 'lucide-react';
 import { useLanguage } from '../contexts/LanguageContext';
+import { supabase } from '../lib/supabase';
 
 const Hero = () => {
   const { t } = useLanguage();
+  const [realStats, setRealStats] = React.useState({
+    totalReviews: 0,
+    averageRating: 4.9,
+    completedProjects: 500
+  });
+
+  React.useEffect(() => {
+    const loadRealStats = async () => {
+      try {
+        // Get review statistics
+        const { data: reviewStats } = await supabase.rpc('get_review_stats');
+        
+        // Get total completed translations
+        const { data: translations, count } = await supabase
+          .from('translation_requests')
+          .select('id', { count: 'exact' })
+          .eq('status', 'completed');
+
+        if (reviewStats && reviewStats.length > 0) {
+          const stats = reviewStats[0];
+          setRealStats({
+            totalReviews: stats.total_reviews || 0,
+            averageRating: parseFloat(stats.average_rating) || 4.9,
+            completedProjects: count || 500
+          });
+        } else if (count) {
+          setRealStats(prev => ({
+            ...prev,
+            completedProjects: count
+          }));
+        }
+      } catch (error) {
+        console.error('Error loading real stats:', error);
+        // Keep default values on error
+      }
+    };
+
+    loadRealStats();
+  }, []);
 
   const scrollToServices = () => {
     const element = document.getElementById('servicios');
@@ -104,7 +144,7 @@ const Hero = () => {
               <div className="flex items-center justify-center w-12 h-12 bg-blue-500/20 rounded-xl mb-3 mx-auto">
                 <Users className="w-6 h-6 text-blue-300" />
               </div>
-              <div className="text-3xl font-bold text-white mb-1">500+</div>
+              <div className="text-3xl font-bold text-white mb-1">{realStats.completedProjects}+</div>
               <div className="text-blue-200">{t('hero.clients')}</div>
             </div>
             <div className="text-center">
@@ -118,8 +158,13 @@ const Hero = () => {
               <div className="flex items-center justify-center w-12 h-12 bg-purple-500/20 rounded-xl mb-3 mx-auto">
                 <Star className="w-6 h-6 text-purple-300" />
               </div>
-              <div className="text-3xl font-bold text-white mb-1">4.9/5</div>
-              <div className="text-blue-200">{t('hero.rating')}</div>
+              <div className="text-3xl font-bold text-white mb-1">{realStats.averageRating}/5</div>
+              <div className="text-blue-200">
+                {realStats.totalReviews > 0 
+                  ? `${realStats.totalReviews} ${t('hero.rating')}s` 
+                  : t('hero.rating')
+                }
+              </div>
             </div>
           </div>
         </div>

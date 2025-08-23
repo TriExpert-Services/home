@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Shield, Download, Eye, FileText, Calendar, User, Globe, CheckCircle, XCircle, Clock, ArrowLeft, Star } from 'lucide-react';
+import { Shield, Download, Eye, FileText, Calendar, User, Globe, CheckCircle, XCircle, Clock, ArrowLeft, Star, MessageSquare, Send } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 
 interface VerificationPageProps {
@@ -36,11 +36,31 @@ interface TranslationDetails {
   created_at: string;
 }
 
+interface ReviewForm {
+  rating: number;
+  title: string;
+  comment: string;
+  showFullName: boolean;
+  showServiceDetails: boolean;
+}
+
 const VerificationPage: React.FC<VerificationPageProps> = ({ verificationToken, onBack }) => {
   const [isLoading, setIsLoading] = useState(true);
   const [verificationData, setVerificationData] = useState<VerificationData | null>(null);
   const [translationDetails, setTranslationDetails] = useState<TranslationDetails | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [showReviewForm, setShowReviewForm] = useState(false);
+  const [canReview, setCanReview] = useState(false);
+  const [alreadyReviewed, setAlreadyReviewed] = useState(false);
+  const [reviewForm, setReviewForm] = useState<ReviewForm>({
+    rating: 5,
+    title: '',
+    comment: '',
+    showFullName: true,
+    showServiceDetails: true
+  });
+  const [isSubmittingReview, setIsSubmittingReview] = useState(false);
+  const [reviewSubmitted, setReviewSubmitted] = useState(false);
 
   useEffect(() => {
     verifyAndLoadData();
@@ -85,6 +105,9 @@ const VerificationPage: React.FC<VerificationPageProps> = ({ verificationToken, 
 
       setTranslationDetails(translationData);
 
+      // Check if user can leave a review
+      await checkReviewEligibility();
+
       // Log verification access
       await logAccess('view');
 
@@ -93,6 +116,66 @@ const VerificationPage: React.FC<VerificationPageProps> = ({ verificationToken, 
       setError('Error validating verification link');
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const checkReviewEligibility = async () => {
+    try {
+      const { data: reviewCheck, error } = await supabase
+        .rpc('can_leave_review', { verification_token: verificationToken });
+
+      if (error) throw error;
+
+      if (reviewCheck && reviewCheck.length > 0) {
+        const eligibility = reviewCheck[0];
+        setCanReview(eligibility.can_review);
+        setAlreadyReviewed(eligibility.already_reviewed);
+      }
+    } catch (error) {
+      console.error('Error checking review eligibility:', error);
+    }
+  };
+
+  const submitReview = async () => {
+    if (!reviewForm.comment.trim() || reviewForm.comment.length < 10) {
+      alert('Please provide a detailed comment (at least 10 characters)');
+      return;
+    }
+
+    setIsSubmittingReview(true);
+
+    try {
+      const { error } = await supabase
+        .from('client_reviews')
+        .insert({
+          translation_request_id: translationDetails?.id,
+          rating: reviewForm.rating,
+          title: reviewForm.title.trim() || null,
+          comment: reviewForm.comment.trim(),
+          client_name: translationDetails?.full_name,
+          client_email: translationDetails?.email,
+          service_type: translationDetails?.document_type,
+          verification_token: verificationToken,
+          show_full_name: reviewForm.showFullName,
+          show_service_details: reviewForm.showServiceDetails,
+          ip_address: null, // Could be enhanced with IP detection
+          user_agent: navigator.userAgent
+        });
+
+      if (error) throw error;
+
+      setReviewSubmitted(true);
+      setShowReviewForm(false);
+      setAlreadyReviewed(true);
+      
+      // Show success message
+      alert('Thank you for your review! It will be published after approval.');
+
+    } catch (error) {
+      console.error('Error submitting review:', error);
+      alert('Error submitting review. Please try again.');
+    } finally {
+      setIsSubmittingReview(false);
     }
   };
 
@@ -417,6 +500,149 @@ const VerificationPage: React.FC<VerificationPageProps> = ({ verificationToken, 
             </div>
           </div>
         </div>
+
+        {/* Review Section */}
+        {canReview && !alreadyReviewed && !reviewSubmitted && (
+          <div className="bg-gradient-to-r from-yellow-500/10 to-orange-500/10 border border-yellow-500/20 rounded-2xl p-6 mb-8">
+            <div className="text-center mb-6">
+              <div className="flex items-center justify-center mb-4">
+                <MessageSquare className="w-8 h-8 text-yellow-400 mr-3" />
+                <div>
+                  <h2 className="text-xl font-bold text-white">Share Your Experience</h2>
+                  <p className="text-yellow-300">Help others by leaving a review of our service</p>
+                </div>
+              </div>
+              
+              {!showReviewForm ? (
+                <button
+                  onClick={() => setShowReviewForm(true)}
+                  className="bg-gradient-to-r from-yellow-500 to-orange-500 text-white px-6 py-3 rounded-lg font-semibold hover:from-yellow-600 hover:to-orange-600 transition-all transform hover:scale-105 flex items-center space-x-2 mx-auto"
+                >
+                  <Star className="w-5 h-5" />
+                  <span>Leave a Review</span>
+                </button>
+              ) : (
+                <div className="bg-white/10 backdrop-blur-xl rounded-xl p-6 text-left">
+                  <div className="space-y-6">
+                    {/* Rating */}
+                    <div>
+                      <label className="block text-white font-medium mb-2">Rating *</label>
+                      <div className="flex items-center space-x-1 mb-2">
+                        {[1, 2, 3, 4, 5].map((star) => (
+                          <button
+                            key={star}
+                            onClick={() => setReviewForm({ ...reviewForm, rating: star })}
+                            className={`transition-colors ${
+                              star <= reviewForm.rating ? 'text-yellow-400' : 'text-gray-400'
+                            } hover:text-yellow-300`}
+                          >
+                            <Star className="w-6 h-6 fill-current" />
+                          </button>
+                        ))}
+                      </div>
+                      <p className="text-sm text-white/70">
+                        {reviewForm.rating === 5 && 'Excellent'}
+                        {reviewForm.rating === 4 && 'Very Good'}
+                        {reviewForm.rating === 3 && 'Good'}
+                        {reviewForm.rating === 2 && 'Fair'}
+                        {reviewForm.rating === 1 && 'Poor'}
+                      </p>
+                    </div>
+
+                    {/* Title */}
+                    <div>
+                      <label className="block text-white font-medium mb-2">Review Title (optional)</label>
+                      <input
+                        type="text"
+                        value={reviewForm.title}
+                        onChange={(e) => setReviewForm({ ...reviewForm, title: e.target.value })}
+                        placeholder="Brief title for your review"
+                        className="w-full bg-slate-800/50 border border-slate-600 rounded-lg px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-yellow-500"
+                      />
+                    </div>
+
+                    {/* Comment */}
+                    <div>
+                      <label className="block text-white font-medium mb-2">Your Review *</label>
+                      <textarea
+                        value={reviewForm.comment}
+                        onChange={(e) => setReviewForm({ ...reviewForm, comment: e.target.value })}
+                        placeholder="Share your experience with our translation service..."
+                        rows={4}
+                        className="w-full bg-slate-800/50 border border-slate-600 rounded-lg px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-yellow-500 resize-none"
+                        required
+                      />
+                      <p className="text-sm text-white/70 mt-1">
+                        {reviewForm.comment.length}/500 characters (minimum 10)
+                      </p>
+                    </div>
+
+                    {/* Privacy Options */}
+                    <div className="space-y-3">
+                      <div className="flex items-center">
+                        <input
+                          type="checkbox"
+                          id="showFullName"
+                          checked={reviewForm.showFullName}
+                          onChange={(e) => setReviewForm({ ...reviewForm, showFullName: e.target.checked })}
+                          className="w-4 h-4 text-yellow-500 bg-slate-800 border-slate-600 rounded focus:ring-yellow-500"
+                        />
+                        <label htmlFor="showFullName" className="ml-2 text-white text-sm">
+                          Show my full name (otherwise only first name and last initial)
+                        </label>
+                      </div>
+                      
+                      <div className="flex items-center">
+                        <input
+                          type="checkbox"
+                          id="showServiceDetails"
+                          checked={reviewForm.showServiceDetails}
+                          onChange={(e) => setReviewForm({ ...reviewForm, showServiceDetails: e.target.checked })}
+                          className="w-4 h-4 text-yellow-500 bg-slate-800 border-slate-600 rounded focus:ring-yellow-500"
+                        />
+                        <label htmlFor="showServiceDetails" className="ml-2 text-white text-sm">
+                          Show service details in review
+                        </label>
+                      </div>
+                    </div>
+
+                    {/* Buttons */}
+                    <div className="flex items-center space-x-4 pt-4">
+                      <button
+                        onClick={submitReview}
+                        disabled={isSubmittingReview || reviewForm.comment.length < 10}
+                        className="bg-gradient-to-r from-yellow-500 to-orange-500 text-white px-6 py-2 rounded-lg font-semibold hover:from-yellow-600 hover:to-orange-600 disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center space-x-2"
+                      >
+                        <Send className="w-4 h-4" />
+                        <span>{isSubmittingReview ? 'Submitting...' : 'Submit Review'}</span>
+                      </button>
+                      
+                      <button
+                        onClick={() => setShowReviewForm(false)}
+                        className="bg-slate-600 hover:bg-slate-700 text-white px-6 py-2 rounded-lg font-semibold transition-colors"
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Already Reviewed Message */}
+        {alreadyReviewed && (
+          <div className="bg-green-500/20 border border-green-500/30 rounded-2xl p-4 mb-8">
+            <div className="flex items-center justify-center text-green-300">
+              <CheckCircle className="w-6 h-6 mr-3" />
+              <div>
+                <p className="font-medium">Thank you for your review!</p>
+                <p className="text-green-400 text-sm">Your feedback helps us improve our service</p>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Footer */}
         <div className="text-center mt-8 pt-8 border-t border-white/20">
