@@ -452,6 +452,22 @@ const AdminPanel = () => {
               </div>
             </div>
             <button
+              onClick={() => setCurrentTab('leads')}
+              className={`flex items-center space-x-3 w-full px-4 py-3 rounded-lg transition-colors ${
+                currentTab === 'leads' 
+                  ? 'bg-purple-600 text-white' 
+                  : 'text-slate-300 hover:text-white hover:bg-slate-700'
+              }`}
+            >
+              <Users className="w-5 h-5" />
+              <span className="text-sm font-medium">Contact Leads</span>
+              {leadsStats.new_leads > 0 && (
+                <span className="bg-red-500 text-white text-xs font-bold px-2 py-1 rounded-full">
+                  {leadsStats.new_leads}
+                </span>
+              )}
+            </button>
+            <button
               onClick={logout}
               className="text-slate-400 hover:text-red-400 transition-colors"
               title="Logout"
