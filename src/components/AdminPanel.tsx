@@ -289,7 +289,7 @@ const AdminPanel = () => {
     { id: 'dashboard', name: 'Dashboard', icon: <BarChart3 className="w-5 h-5" /> },
     { id: 'translations', name: 'Translations', icon: <FileText className="w-5 h-5" /> },
     { id: 'reviews', name: 'Reviews', icon: <Star className="w-5 h-5" /> },
-    { id: 'contacts', name: 'Contact Leads', icon: <MessageSquare className="w-5 h-5" /> },
+    { id: 'contacts', name: `Contact Leads${leadsStats.newLeads > 0 ? ` (${leadsStats.newLeads})` : ''}`, icon: <MessageSquare className="w-5 h-5" /> },
     { id: 'settings', name: 'Settings', icon: <Settings className="w-5 h-5" /> }
   ];
 
