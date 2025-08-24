@@ -4,7 +4,7 @@ import {
   LogOut, RefreshCcw, Star, AlertCircle, CheckCircle, X, XCircle, AlertTriangle,
   Calendar, Clock, DollarSign, TrendingUp, BarChart3, Plus, Search, Filter,
   SortAsc, SortDesc, MoreVertical, ChevronLeft, ChevronRight, ChevronDown, ChevronUp,
-  MessageSquare, Phone, Mail, Send, Building, Target, Globe, MapPin, User
+  Building, Target, Globe, MapPin, User, Lock, Upload, EyeOff
 } from 'lucide-react';
 import { useAdmin } from '../contexts/AdminContext';
 import { supabase } from '../lib/supabase';
