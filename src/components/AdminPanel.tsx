@@ -3,8 +3,8 @@ import {
   Shield, Users, FileText, Settings, Home, Edit, Eye, Download, Trash2, ExternalLink,
   LogOut, RefreshCcw, Star, AlertCircle, CheckCircle, X, XCircle, AlertTriangle,
   Calendar, Clock, DollarSign, TrendingUp, BarChart3, Plus, Search, Filter,
-  RefreshCw, ExternalLink, Copy, Save, Camera, Lock, MessageSquare,
-  Building, Target, Globe, MapPin, User, Lock, Upload, EyeOff
+  RefreshCw, Copy, Save, Camera, Lock, MessageSquare,
+  Building, Target, Globe, MapPin, User, Upload, EyeOff, ExternalLink, Eye
 } from 'lucide-react';
 import { useAdmin } from '../contexts/AdminContext';
 import { supabase } from '../lib/supabase';
