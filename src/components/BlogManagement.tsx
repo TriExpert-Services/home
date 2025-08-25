@@ -54,6 +54,9 @@ interface PostForm {
   read_time_minutes: number;
   difficulty_level: string;
   status: string;
+  featuredVideo: string;
+  featuredImage: string;
+  allowHtml: boolean;
 }
 
 const BlogManagement: React.FC = () => {
@@ -75,7 +78,10 @@ const BlogManagement: React.FC = () => {
     featured: false,
     read_time_minutes: 5,
     difficulty_level: 'beginner',
-    status: 'draft'
+    status: 'draft',
+    featuredVideo: '',
+    featuredImage: '',
+    allowHtml: true
   });
 
   useEffect(() => {
@@ -206,7 +212,10 @@ const BlogManagement: React.FC = () => {
       featured: post.featured,
       read_time_minutes: post.read_time_minutes,
       difficulty_level: post.difficulty_level,
-      status: post.status
+      status: post.status,
+      featuredVideo: '',
+      featuredImage: '',
+      allowHtml: true
     });
     setShowEditor(true);
   };
@@ -248,7 +257,10 @@ const BlogManagement: React.FC = () => {
       featured: false,
       read_time_minutes: 5,
       difficulty_level: 'beginner',
-      status: 'draft'
+      status: 'draft',
+      featuredVideo: '',
+      featuredImage: '',
+      allowHtml: true
     });
   };
 
@@ -514,27 +526,39 @@ const BlogManagement: React.FC = () => {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-slate-300 mb-2">
-                    Content (English) *
+                    Content (English) * - HTML Supported
                   </label>
                   <textarea
                     value={postForm.content_en}
                     onChange={(e) => handleFormChange('content_en', e.target.value)}
-                    rows={10}
+                    rows={15}
                     className="w-full bg-slate-700 border border-slate-600 rounded-lg px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-orange-500 resize-none"
+                    placeholder="Enter HTML content. Supports: videos, images, tables, code blocks, etc."
                     required
                   />
+                  <div className="mt-2 text-xs text-slate-400 space-y-1">
+                    <div>💡 HTML Tags supported: h1-h6, p, div, img, iframe, table, ul, ol, blockquote, code, pre</div>
+                    <div>🎥 YouTube: &lt;iframe src="https://youtube.com/embed/VIDEO_ID"&gt;</div>
+                    <div>🎨 Use Tailwind classes for styling</div>
+                  </div>
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-slate-300 mb-2">
-                    Content (Español) *
+                    Content (Español) * - HTML Soportado
                   </label>
                   <textarea
                     value={postForm.content_es}
                     onChange={(e) => handleFormChange('content_es', e.target.value)}
-                    rows={10}
+                    rows={15}
                     className="w-full bg-slate-700 border border-slate-600 rounded-lg px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-orange-500 resize-none"
+                    placeholder="Contenido HTML. Soporta: videos, imágenes, tablas, bloques de código, etc."
                     required
                   />
+                  <div className="mt-2 text-xs text-slate-400 space-y-1">
+                    <div>💡 Tags HTML soportados: h1-h6, p, div, img, iframe, table, ul, ol, blockquote, code, pre</div>
+                    <div>🎥 YouTube: &lt;iframe src="https://youtube.com/embed/VIDEO_ID"&gt;</div>
+                    <div>🎨 Usa clases de Tailwind para estilos</div>
+                  </div>
                 </div>
               </div>
 
@@ -590,6 +614,34 @@ const BlogManagement: React.FC = () => {
                 </div>
               </div>
 
+              {/* Rich Content Options */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-slate-300 mb-2">
+                    Featured Video URL (optional)
+                  </label>
+                  <input
+                    type="url"
+                    value={postForm.featuredVideo || ''}
+                    onChange={(e) => handleFormChange('featuredVideo', e.target.value)}
+                    className="w-full bg-slate-700 border border-slate-600 rounded-lg px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-orange-500"
+                    placeholder="https://youtube.com/embed/VIDEO_ID"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-300 mb-2">
+                    Featured Image URL (optional)
+                  </label>
+                  <input
+                    type="url"
+                    value={postForm.featuredImage || ''}
+                    onChange={(e) => handleFormChange('featuredImage', e.target.value)}
+                    className="w-full bg-slate-700 border border-slate-600 rounded-lg px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-orange-500"
+                    placeholder="https://images.pexels.com/..."
+                  />
+                </div>
+              </div>
+
               {/* Slug and Tags */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
@@ -628,6 +680,16 @@ const BlogManagement: React.FC = () => {
                     className="w-4 h-4 text-orange-500 bg-slate-700 border-slate-600 rounded focus:ring-orange-500"
                   />
                   <span className="ml-2 text-slate-300">Featured Post</span>
+                </label>
+                
+                <label className="flex items-center">
+                  <input
+                    type="checkbox"
+                    checked={postForm.allowHtml || true}
+                    onChange={(e) => handleFormChange('allowHtml', e.target.checked)}
+                    className="w-4 h-4 text-orange-500 bg-slate-700 border-slate-600 rounded focus:ring-orange-500"
+                  />
+                  <span className="ml-2 text-slate-300">Allow HTML Content</span>
                 </label>
               </div>
 

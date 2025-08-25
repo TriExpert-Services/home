@@ -237,8 +237,22 @@ const Blog: React.FC<BlogProps> = ({ onBack }) => {
 
             {/* Post Content */}
             <div className="prose prose-invert max-w-none">
-              <div className="text-slate-300 leading-relaxed whitespace-pre-line">
-                {getContent(selectedPost)}
+              <div className="text-slate-300 leading-relaxed">
+                {selectedPost.content_type === 'html' ? (
+                  <div 
+                    dangerouslySetInnerHTML={{ __html: getContent(selectedPost) }}
+                    className="prose prose-invert prose-slate max-w-none 
+                               prose-headings:text-slate-200 prose-p:text-slate-300 
+                               prose-strong:text-white prose-a:text-blue-400 
+                               prose-blockquote:border-blue-500 prose-blockquote:text-slate-400
+                               prose-code:bg-slate-800 prose-code:text-blue-300
+                               prose-pre:bg-slate-800 prose-pre:border prose-pre:border-slate-600"
+                  />
+                ) : (
+                  <div className="whitespace-pre-line">
+                    {getContent(selectedPost)}
+                  </div>
+                )}
               </div>
             </div>
 
