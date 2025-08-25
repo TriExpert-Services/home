@@ -24,6 +24,17 @@ const Testimonials = () => {
     loadFeaturedReviews();
   }, []);
 
+  // Auto-rotate testimonials every 3.5 seconds
+  useEffect(() => {
+    if (reviews.length > 1) {
+      const interval = setInterval(() => {
+        setCurrentIndex((prev) => (prev + 1) % reviews.length);
+      }, 3500);
+
+      return () => clearInterval(interval);
+    }
+  }, [reviews.length]);
+
   const loadFeaturedReviews = async () => {
     setIsLoading(true);
     try {
@@ -195,67 +206,6 @@ const Testimonials = () => {
               </div>
             </div>
           </div>
-        </div>
-
-        {/* Review Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {reviews.slice(1, 7).map((review, index) => {
-            const reviewDisplayName = review.show_full_name 
-              ? review.client_name 
-              : `${review.client_name.split(' ')[0]} ${review.client_name.split(' ')[1]?.[0] || ''}.`;
-            
-            return (
-              <div
-                key={review.id}
-                className="bg-slate-700/50 backdrop-blur-sm rounded-2xl p-6 border border-slate-600 hover:border-yellow-500/50 transition-all duration-300 hover:-translate-y-1 cursor-pointer"
-                onClick={() => setCurrentIndex(index + 1)}
-              >
-                {/* Rating */}
-                <div className="flex items-center space-x-1 mb-3">
-                  {[1, 2, 3, 4, 5].map((star) => (
-                    <Star
-                      key={star}
-                      className={`w-4 h-4 ${
-                        star <= review.rating
-                          ? 'text-yellow-400 fill-yellow-400'
-                          : 'text-slate-500'
-                      }`}
-                    />
-                  ))}
-                </div>
-
-                {/* Title */}
-                {review.title && (
-                  <h4 className="font-bold text-white mb-2 text-sm">
-                    {review.title}
-                  </h4>
-                )}
-
-                {/* Comment (truncated) */}
-                <p className="text-slate-300 text-sm leading-relaxed mb-4 line-clamp-3">
-                  {review.comment.length > 100 
-                    ? `${review.comment.substring(0, 100)}...` 
-                    : review.comment
-                  }
-                </p>
-
-                {/* Client info */}
-                <div className="flex items-center space-x-3">
-                  <div className="w-8 h-8 bg-gradient-to-br from-yellow-500 to-orange-500 rounded-full flex items-center justify-center">
-                    <span className="text-white font-bold text-sm">
-                      {reviewDisplayName.charAt(0)}
-                    </span>
-                  </div>
-                  <div>
-                    <p className="text-white font-medium text-sm">{reviewDisplayName}</p>
-                    <p className="text-slate-400 text-xs">
-                      {getServiceDisplayName(review.service_type)}
-                    </p>
-                  </div>
-                </div>
-              </div>
-            );
-          })}
         </div>
 
         {/* CTA */}
