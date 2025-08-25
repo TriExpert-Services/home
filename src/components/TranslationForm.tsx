@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ArrowLeft, User, Globe, Upload, Clock, FileText, Calendar, CreditCard, Loader2, CheckCircle, AlertCircle, Zap } from 'lucide-react';
+import { ArrowLeft, User, Globe, Upload, Clock, FileText, Calendar, CreditCard, Loader2, CheckCircle, AlertCircle, Zap, Languages } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useLanguage } from '../contexts/LanguageContext';
 
@@ -23,7 +23,7 @@ interface FormErrors {
 }
 
 const TranslationForm = ({ onBack }: { onBack: () => void }) => {
-  const { t, language } = useLanguage();
+  const { t, language, setLanguage } = useLanguage();
   
   const [formData, setFormData] = useState<FormData>({
     fullName: '',
@@ -462,6 +462,22 @@ const TranslationForm = ({ onBack }: { onBack: () => void }) => {
           >
             <ArrowLeft className="w-6 h-6" />
           </button>
+          
+          {/* Language Selector */}
+          <div className="ml-auto flex items-center space-x-3 bg-slate-800/50 backdrop-blur-sm rounded-xl px-4 py-2 border border-slate-600">
+            <Languages className="w-4 h-4 text-slate-300" />
+            <span className="text-slate-300 text-sm">Language:</span>
+            <button
+              onClick={() => setLanguage(language === 'en' ? 'es' : 'en')}
+              className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white px-3 py-1 rounded-lg text-sm font-medium hover:from-blue-700 hover:to-indigo-700 transition-all transform hover:scale-105"
+            >
+              {language === 'en' ? 'Español' : 'English'}
+            </button>
+          </div>
+        </div>
+        
+        {/* Title Section */}
+        <div className="text-center mb-8">
           <div className="text-center flex-1">
             <div className="w-16 h-16 bg-gradient-to-br from-purple-500 to-indigo-600 rounded-full flex items-center justify-center mx-auto mb-4">
               <Globe className="w-8 h-8 text-white" />
