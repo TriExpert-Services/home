@@ -140,12 +140,28 @@ const BlogManagement: React.FC = () => {
   const savePost = async (publishNow: boolean = false) => {
     try {
       const postData = {
-        ...postForm,
+        title_en: postForm.title_en,
+        title_es: postForm.title_es,
+        content_en: postForm.content_en,
+        content_es: postForm.content_es,
+        excerpt_en: postForm.excerpt_en,
+        excerpt_es: postForm.excerpt_es,
+        category: postForm.category,
         tags: postForm.tags.split(',').map(tag => tag.trim()).filter(tag => tag),
+        slug: postForm.slug,
+        featured: postForm.featured,
+        read_time_minutes: postForm.read_time_minutes,
+        difficulty_level: postForm.difficulty_level,
         status: publishNow ? 'published' : postForm.status,
         published_at: publishNow ? new Date().toISOString() : null,
-        author_name: 'TriExpert Services'
+        author_name: 'TriExpert Services',
+        content_type: 'html',
+        allow_html: true,
+        featured_video_url: postForm.featuredVideo || null,
+        featured_image_url: postForm.featuredImage || null
       };
+
+      console.log('Saving post with data:', postData);
 
       if (editingPost) {
         // Update existing post
@@ -188,12 +204,13 @@ const BlogManagement: React.FC = () => {
 
       if (error) throw error;
 
+      console.log('Post saved successfully');
       loadBlogData();
       alert('Post deleted successfully!');
 
     } catch (error) {
       console.error('Error deleting post:', error);
-      alert('Error deleting post');
+      alert(`Error deleting post: ${error.message}`);
     }
   };
 
@@ -239,7 +256,7 @@ const BlogManagement: React.FC = () => {
 
     } catch (error) {
       console.error('Error updating post status:', error);
-      alert('Error updating post status');
+      alert(`Error updating post status: ${error.message}`);
     }
   };
 
