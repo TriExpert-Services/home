@@ -1,9 +1,11 @@
 import React from 'react';
+import { useState } from 'react';
 import { Settings, Shield, Zap, Code, Database, Cloud, FileText, ArrowRight, ExternalLink } from 'lucide-react';
 import { useLanguage } from '../contexts/LanguageContext';
 
 const Services = () => {
   const { t, language } = useLanguage();
+  const [expandedService, setExpandedService] = useState<number | null>(null);
 
   const scrollToContact = () => {
     const element = document.getElementById('contacto');
@@ -48,6 +50,10 @@ const Services = () => {
         }
       }
     }, 1000);
+  };
+
+  const toggleService = (index: number) => {
+    setExpandedService(expandedService === index ? null : index);
   };
 
   const services = [
@@ -200,7 +206,7 @@ const Services = () => {
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
           {services.map((service, index) => (
-            <div key={index} className="group relative h-full">
+            <div key={index} className="group relative">
               {/* Service highlight badge */}
               {service.highlight && (
                 <div className={`absolute -top-2 -right-2 bg-gradient-to-r ${service.color} text-white text-xs font-semibold px-3 py-1 rounded-full shadow-lg z-10 transform rotate-3`}>
@@ -208,7 +214,9 @@ const Services = () => {
                 </div>
               )}
               
-              <div className="bg-slate-800/50 backdrop-blur-sm border border-slate-700 rounded-2xl p-8 shadow-lg hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-2 h-full flex flex-col">
+              <div className={`bg-slate-800/50 backdrop-blur-sm border border-slate-700 rounded-2xl p-8 shadow-lg hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-2 ${
+                expandedService === index ? 'border-blue-500/50' : ''
+              }`}>
                 <div className={`inline-flex items-center justify-center w-16 h-16 bg-gradient-to-r ${service.color} rounded-xl text-white mb-6 group-hover:scale-110 transition-transform duration-300`}>
                   {service.icon}
                 </div>
@@ -220,64 +228,72 @@ const Services = () => {
                 <p className="text-slate-300 mb-4 leading-relaxed">
                   {service.description}
                 </p>
-                
-                {/* Detailed Description - Only for non-translation services */}
-                {service.detailedDescription && (
-                  <div className="mb-6">
-                    <p className="text-slate-400 text-sm leading-relaxed mb-4">
-                      {service.detailedDescription}
-                    </p>
-                  </div>
-                )}
 
-                {/* Business Benefits - Only for non-translation services */}
-                {service.businessBenefits && (
-                  <div className="mb-6">
-                    <h4 className="text-lg font-semibold text-blue-400 mb-3">
-                      {language === 'es' ? 'Beneficios por Sector' : 'Benefits by Sector'}
-                    </h4>
-                    <div className="space-y-3">
-                      <div className="bg-slate-700/30 rounded-lg p-3">
-                        <h5 className="font-medium text-green-400 text-sm mb-1">
-                          {language === 'es' ? 'Pequeñas Empresas:' : 'Small Businesses:'}
-                        </h5>
-                        <p className="text-slate-300 text-xs">{service.businessBenefits.small}</p>
+                {/* Expanded Content - Only shown when service is expanded */}
+                {expandedService === index && (
+                  <div className="mb-6 animate-in slide-in-from-top duration-300">
+                    {/* Detailed Description - Only for non-translation services */}
+                    {service.detailedDescription && (
+                      <div className="mb-6">
+                        <h4 className="text-lg font-semibold text-blue-400 mb-3">
+                          {language === 'es' ? 'Descripción Detallada' : 'Detailed Description'}
+                        </h4>
+                        <p className="text-slate-400 text-sm leading-relaxed">
+                          {service.detailedDescription}
+                        </p>
                       </div>
-                      <div className="bg-slate-700/30 rounded-lg p-3">
-                        <h5 className="font-medium text-blue-400 text-sm mb-1">
-                          {language === 'es' ? 'Medianas Empresas:' : 'Medium Businesses:'}
-                        </h5>
-                        <p className="text-slate-300 text-xs">{service.businessBenefits.medium}</p>
+                    )}
+
+                    {/* Business Benefits - Only for non-translation services */}
+                    {service.businessBenefits && (
+                      <div className="mb-6">
+                        <h4 className="text-lg font-semibold text-blue-400 mb-3">
+                          {language === 'es' ? 'Beneficios por Sector' : 'Benefits by Sector'}
+                        </h4>
+                        <div className="space-y-3">
+                          <div className="bg-slate-700/30 rounded-lg p-3">
+                            <h5 className="font-medium text-green-400 text-sm mb-1">
+                              {language === 'es' ? 'Pequeñas Empresas:' : 'Small Businesses:'}
+                            </h5>
+                            <p className="text-slate-300 text-xs">{service.businessBenefits.small}</p>
+                          </div>
+                          <div className="bg-slate-700/30 rounded-lg p-3">
+                            <h5 className="font-medium text-blue-400 text-sm mb-1">
+                              {language === 'es' ? 'Medianas Empresas:' : 'Medium Businesses:'}
+                            </h5>
+                            <p className="text-slate-300 text-xs">{service.businessBenefits.medium}</p>
+                          </div>
+                          <div className="bg-slate-700/30 rounded-lg p-3">
+                            <h5 className="font-medium text-purple-400 text-sm mb-1">
+                              {language === 'es' ? 'Grandes Empresas:' : 'Enterprise:'}
+                            </h5>
+                            <p className="text-slate-300 text-xs">{service.businessBenefits.enterprise}</p>
+                          </div>
+                        </div>
                       </div>
-                      <div className="bg-slate-700/30 rounded-lg p-3">
-                        <h5 className="font-medium text-purple-400 text-sm mb-1">
-                          {language === 'es' ? 'Grandes Empresas:' : 'Enterprise:'}
-                        </h5>
-                        <p className="text-slate-300 text-xs">{service.businessBenefits.enterprise}</p>
+                    )}
+
+                    {/* Key Benefits - Only for non-translation services */}
+                    {service.keyBenefits && (
+                      <div className="mb-6">
+                        <h4 className="text-lg font-semibold text-orange-400 mb-3">
+                          {language === 'es' ? 'Beneficios Clave' : 'Key Benefits'}
+                        </h4>
+                        <ul className="space-y-2">
+                          {service.keyBenefits.map((benefit, benefitIndex) => (
+                            <li key={benefitIndex} className="flex items-start text-sm text-slate-300">
+                              <div className={`w-2 h-2 bg-gradient-to-r ${service.color} rounded-full mr-3 mt-1.5 flex-shrink-0`}></div>
+                              <span>{benefit}</span>
+                            </li>
+                          ))}
+                        </ul>
                       </div>
+                    )}
                     </div>
-                  </div>
                 )}
 
-                {/* Key Benefits - Only for non-translation services */}
-                {service.keyBenefits && (
-                  <div className="mb-6">
-                    <h4 className="text-lg font-semibold text-orange-400 mb-3">
-                      {language === 'es' ? 'Beneficios Clave' : 'Key Benefits'}
-                    </h4>
-                    <ul className="space-y-2">
-                      {service.keyBenefits.map((benefit, benefitIndex) => (
-                        <li key={benefitIndex} className="flex items-start text-sm text-slate-300">
-                          <div className={`w-2 h-2 bg-gradient-to-r ${service.color} rounded-full mr-3 mt-1.5 flex-shrink-0`}></div>
-                          <span>{benefit}</span>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                )}
-                
                 {/* Regular Features */}
-                <div className="mb-6">
+                <div className={`mb-6 ${expandedService === index ? '' : 'mb-auto'}`}>
                   <h4 className="text-base font-medium text-white mb-3">
                     {language === 'es' ? 'Incluye:' : 'Includes:'}
                   </h4>
@@ -291,7 +307,26 @@ const Services = () => {
                   </ul>
                 </div>
                 
-                <div className="mt-auto">
+                <div className="space-y-3">
+                  {/* Learn More / Collapse Button */}
+                  {(service.detailedDescription || service.businessBenefits || service.keyBenefits) && (
+                    <button 
+                      onClick={() => toggleService(index)}
+                      className="w-full bg-slate-600/50 hover:bg-slate-600/70 text-slate-300 hover:text-white py-2 px-4 rounded-lg font-medium transition-all duration-200 flex items-center justify-center space-x-2 border border-slate-600 hover:border-slate-500"
+                    >
+                      <span>
+                        {expandedService === index 
+                          ? (language === 'es' ? 'Mostrar Menos' : 'Show Less')
+                          : t('services.learnMore')
+                        }
+                      </span>
+                      <ArrowRight className={`w-4 h-4 transition-transform duration-300 ${
+                        expandedService === index ? 'rotate-90' : ''
+                      }`} />
+                    </button>
+                  )}
+
+                  {/* Action Button */}
                   <button 
                     onClick={() => {
                       if (service.title === t('services.translations.title')) {
@@ -302,7 +337,12 @@ const Services = () => {
                     }}
                     className={`group/btn w-full bg-gradient-to-r ${service.color} text-white py-3 px-6 rounded-xl font-semibold hover:shadow-lg transform hover:scale-105 transition-all duration-200 flex items-center justify-center space-x-2`}
                   >
-                    <span>{t('services.learnMore')}</span>
+                    <span>
+                      {service.title === t('services.translations.title') 
+                        ? (language === 'es' ? 'Solicitar Traducción' : 'Request Translation')
+                        : (language === 'es' ? 'Solicitar Consulta' : 'Request Consultation')
+                      }
+                    </span>
                     <ArrowRight className="w-4 h-4 group-hover/btn:translate-x-1 transition-transform" />
                   </button>
                 </div>
