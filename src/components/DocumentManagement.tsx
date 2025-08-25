@@ -1,6 +1,7 @@
 import React, { useState, useRef } from 'react';
 import { Upload, Download, Eye, FileText, Check, X, Calendar, Star, AlertCircle, ExternalLink, Copy, CheckCircle } from 'lucide-react';
 import { supabase } from '../lib/supabase';
+import QRCodeGenerator from './QRCodeGenerator';
 
 interface DocumentManagementProps {
   requestId: string;
@@ -464,6 +465,14 @@ const DocumentManagement: React.FC<DocumentManagementProps> = ({
         )}
       </div>
 
+      {/* QR Code Generator Section */}
+      {verificationLink && (
+        <QRCodeGenerator 
+          verificationLink={verificationLink}
+          clientName={requestData.full_name}
+          requestId={requestId}
+        />
+      )}
       {/* Delivery Information */}
       {requestData.delivery_date && (
         <div className="bg-green-500/10 border border-green-500/20 rounded-xl p-4">
