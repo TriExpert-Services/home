@@ -17,6 +17,7 @@ import AdminLogin from './components/AdminLogin';
 import AdminPanel from './components/AdminPanel';
 import VerificationPage from './components/VerificationPage';
 import TranslatePage from './components/TranslatePage';
+import Blog from './components/Blog';
 
 // Admin wrapper component to handle admin routing
 function AdminWrapper() {
@@ -123,6 +124,13 @@ function App() {
 
   if (currentRoute === '/translate') {
     return <TranslatePage />;
+  }
+
+  if (currentRoute === '/blog') {
+    return <Blog onBack={() => {
+      window.history.pushState({}, '', '/');
+      setCurrentRoute('/');
+    }} />;
   }
 
   if (currentLegalPage === 'terms') {

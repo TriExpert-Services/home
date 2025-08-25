@@ -47,6 +47,11 @@ const Header = () => {
     scrollToSection('contacto');
   };
 
+  const handleBlogClick = () => {
+    window.history.pushState({}, '', '/blog');
+    window.dispatchEvent(new Event('popstate'));
+  };
+
   const navLinkClass = (section: string) => `
     font-medium transition-all duration-300 cursor-pointer relative
     ${isScrolled 
@@ -92,6 +97,15 @@ const Header = () => {
             </button>
             <button onClick={() => scrollToSection('servicios')} className={navLinkClass('servicios')}>
               {t('header.servicios')}
+            </button>
+            <button 
+              onClick={() => scrollToSection('nosotros')} 
+              className={navLinkClass('blog')}
+            >
+              Blog
+            </button>
+            <button onClick={() => handleBlogClick()} className={navLinkClass('blog')}>
+              {language === 'es' ? 'Blog' : 'Blog'}
             </button>
             <button onClick={() => scrollToSection('nosotros')} className={navLinkClass('nosotros')}>
               {t('header.nosotros')}
@@ -147,6 +161,12 @@ const Header = () => {
               }`}
             >
               {t('header.servicios')}
+            </button>
+            <button 
+              onClick={handleBlogClick} 
+              className="block w-full text-left font-medium text-gray-700 hover:text-blue-600 transition-colors"
+            >
+              Blog
             </button>
             <button 
               onClick={() => scrollToSection('nosotros')} 
