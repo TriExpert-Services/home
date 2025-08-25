@@ -16,8 +16,9 @@ const Services = () => {
   };
 
   const handleTranslationFormClick = () => {
-    // This will be handled by the parent component
-    window.dispatchEvent(new CustomEvent('showTranslationForm'));
+    // Navigate to /translate route
+    window.history.pushState({}, '', '/translate');
+    window.dispatchEvent(new Event('popstate'));
   };
 
   const handleServiceInquiry = (serviceTitle: string) => {

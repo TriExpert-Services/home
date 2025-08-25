@@ -272,7 +272,10 @@ const Testimonials = () => {
               }
             </p>
             <button
-              onClick={() => window.dispatchEvent(new CustomEvent('showTranslationForm'))}
+              onClick={() => {
+                window.history.pushState({}, '', '/translate');
+                window.dispatchEvent(new Event('popstate'));
+              }}
               className="bg-gradient-to-r from-yellow-500 to-orange-500 text-white px-8 py-4 rounded-xl font-semibold hover:from-yellow-600 hover:to-orange-600 transform hover:scale-105 transition-all duration-300"
             >
               {language === 'es' ? 'Solicitar Traducción' : 'Request Translation'}

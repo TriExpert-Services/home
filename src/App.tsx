@@ -16,6 +16,7 @@ import Chatbot from './components/Chatbot';
 import AdminLogin from './components/AdminLogin';
 import AdminPanel from './components/AdminPanel';
 import VerificationPage from './components/VerificationPage';
+import TranslatePage from './components/TranslatePage';
 
 // Admin wrapper component to handle admin routing
 function AdminWrapper() {
@@ -60,15 +61,22 @@ function AdminWrapper() {
 
 // Main app content component
 function App() {
-  const [showTranslationForm, setShowTranslationForm] = useState(false);
   const [currentLegalPage, setCurrentLegalPage] = useState<string | null>(null);
   const [verificationToken, setVerificationToken] = useState<string | null>(null);
+  const [currentRoute, setCurrentRoute] = useState(window.location.pathname);
 
   // Check if we should show admin interface
   const shouldShowAdmin = window.location.pathname.startsWith('/admin') || 
                          window.location.hash.includes('admin');
 
   useEffect(() => {
+    // Handle browser navigation
+    const handlePopState = () => {
+      setCurrentRoute(window.location.pathname);
+    };
+
+    window.addEventListener('popstate', handlePopState);
+
     // Check for verification token in URL
     const checkForVerificationToken = () => {
       const path = window.location.pathname;
@@ -81,15 +89,11 @@ function App() {
 
     checkForVerificationToken();
 
-    const handleShowTranslationForm = () => {
-      setShowTranslationForm(true);
-    };
 
     const handleShowLegalPage = (event: CustomEvent) => {
       setCurrentLegalPage(event.detail);
     };
 
-    window.addEventListener('showTranslationForm', handleShowTranslationForm);
     window.addEventListener('showLegalPage', handleShowLegalPage as EventListener);
     
     // Admin navigation handler
@@ -100,7 +104,7 @@ function App() {
     window.addEventListener('showAdminPanel', handleShowAdminPanel);
     
     return () => {
-      window.removeEventListener('showTranslationForm', handleShowTranslationForm);
+      window.removeEventListener('popstate', handlePopState);
       window.removeEventListener('showLegalPage', handleShowLegalPage as EventListener);
       window.removeEventListener('showAdminPanel', handleShowAdminPanel);
     };
@@ -112,12 +116,13 @@ function App() {
       onBack={() => {
         setVerificationToken(null);
         window.history.pushState({}, '', '/');
+        setCurrentRoute('/');
       }} 
     />;
   }
 
-  if (showTranslationForm) {
-    return <TranslationForm onBack={() => setShowTranslationForm(false)} />;
+  if (currentRoute === '/translate') {
+    return <TranslatePage />;
   }
 
   if (currentLegalPage === 'terms') {
@@ -142,30 +147,21 @@ function App() {
 
 // Main site content component
 function MainContent() {
-  const [showTranslationForm, setShowTranslationForm] = useState(false);
   const [currentLegalPage, setCurrentLegalPage] = useState<string | null>(null);
 
   useEffect(() => {
-    const handleShowTranslationForm = () => {
-      setShowTranslationForm(true);
-    };
 
     const handleShowLegalPage = (event: CustomEvent) => {
       setCurrentLegalPage(event.detail);
     };
 
-    window.addEventListener('showTranslationForm', handleShowTranslationForm);
     window.addEventListener('showLegalPage', handleShowLegalPage as EventListener);
     
     return () => {
-      window.removeEventListener('showTranslationForm', handleShowTranslationForm);
       window.removeEventListener('showLegalPage', handleShowLegalPage as EventListener);
     };
   }, []);
 
-  if (showTranslationForm) {
-    return <TranslationForm onBack={() => setShowTranslationForm(false)} />;
-  }
 
   if (currentLegalPage === 'terms') {
     return <TermsOfService onBack={() => setCurrentLegalPage(null)} />;
