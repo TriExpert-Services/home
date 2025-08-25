@@ -4,11 +4,12 @@ import {
   LogOut, RefreshCcw, Star, AlertCircle, CheckCircle, X, XCircle, AlertTriangle,
   Calendar, Clock, DollarSign, TrendingUp, BarChart3, Plus, Search, Filter,
   SortAsc, SortDesc, MoreVertical, ChevronLeft, ChevronRight, ChevronDown, ChevronUp,
-  MessageSquare, Phone, Mail, Send, Building, Target, Globe, MapPin, User
+  MessageSquare, Phone, Mail, Send, Building, Target, Globe, MapPin, User, FolderOpen
 } from 'lucide-react';
 import { useAdmin } from '../contexts/AdminContext';
 import { supabase } from '../lib/supabase';
 import DocumentManagement from './DocumentManagement';
+import ProjectManagement from './ProjectManagement';
 
 interface TranslationRequest {
   id: string;
@@ -382,6 +383,18 @@ const AdminPanel: React.FC = () => {
                 <span className="ml-auto bg-blue-500 text-white text-xs px-2 py-1 rounded-full">
                   {translationRequests.length}
                 </span>
+              </button>
+
+              <button
+                onClick={() => setActiveTab('projects')}
+                className={`w-full flex items-center space-x-3 px-4 py-3 rounded-xl transition-all ${
+                  activeTab === 'projects' 
+                    ? 'bg-white/20 text-white' 
+                    : 'text-white/70 hover:bg-white/10 hover:text-white'
+                }`}
+              >
+                <FolderOpen className="w-5 h-5" />
+                <span>Projects</span>
               </button>
 
               <button
@@ -779,6 +792,9 @@ const AdminPanel: React.FC = () => {
               )}
             </div>
           )}
+
+          {/* Projects Tab */}
+          {activeTab === 'projects' && <ProjectManagement />}
 
           {/* Reviews Tab */}
           {activeTab === 'reviews' && (
