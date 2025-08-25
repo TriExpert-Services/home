@@ -4,7 +4,8 @@ import {
   LogOut, RefreshCcw, Star, AlertCircle, CheckCircle, X, XCircle, AlertTriangle,
   Calendar, Clock, DollarSign, TrendingUp, BarChart3, Plus, Search, Filter,
   SortAsc, SortDesc, MoreVertical, ChevronLeft, ChevronRight, ChevronDown, ChevronUp,
-  MessageSquare, Phone, Mail, Send, Building, Target, Globe, MapPin, User, FolderOpen
+  MessageSquare, Phone, Mail, Send, Building, Target, Globe, MapPin, User, FolderOpen,
+  BookOpen
 } from 'lucide-react';
 import { useAdmin } from '../contexts/AdminContext';
 import { supabase } from '../lib/supabase';
@@ -396,6 +397,18 @@ const AdminPanel: React.FC = () => {
               >
                 <FolderOpen className="w-5 h-5" />
                 <span>Projects</span>
+              </button>
+
+              <button
+                onClick={() => setActiveTab('blog')}
+                className={`w-full flex items-center space-x-3 px-4 py-3 rounded-xl transition-all ${
+                  activeTab === 'blog' 
+                    ? 'bg-white/20 text-white' 
+                    : 'text-white/70 hover:bg-white/10 hover:text-white'
+                }`}
+              >
+                <BookOpen className="w-5 h-5" />
+                <span>Blog</span>
               </button>
 
               <button
@@ -796,6 +809,9 @@ const AdminPanel: React.FC = () => {
 
           {/* Projects Tab */}
           {activeTab === 'projects' && <ProjectManagement />}
+
+          {/* Blog Tab */}
+          {activeTab === 'blog' && <BlogManagement />}
 
           {/* Reviews Tab */}
           {activeTab === 'reviews' && (
