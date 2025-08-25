@@ -98,12 +98,6 @@ const Header = () => {
             <button onClick={() => scrollToSection('servicios')} className={navLinkClass('servicios')}>
               {t('header.servicios')}
             </button>
-            <button 
-              onClick={() => scrollToSection('nosotros')} 
-              className={navLinkClass('blog')}
-            >
-              Blog
-            </button>
             <button onClick={() => handleBlogClick()} className={navLinkClass('blog')}>
               {language === 'es' ? 'Blog' : 'Blog'}
             </button>
