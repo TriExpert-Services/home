@@ -10,6 +10,7 @@ import { useAdmin } from '../contexts/AdminContext';
 import { supabase } from '../lib/supabase';
 import DocumentManagement from './DocumentManagement';
 import ProjectManagement from './ProjectManagement';
+import BlogManagement from './BlogManagement';
 
 interface TranslationRequest {
   id: string;
