@@ -549,6 +549,30 @@ const VerificationPage: React.FC<VerificationPageProps> = ({ verificationToken, 
                   </p>
                 </div>
               )}
+            </div>
+          </div>
+        </div>
+
+        {/* Review Section */}
+        {canReview && !alreadyReviewed && !reviewSubmitted && (
+          <div className="bg-gradient-to-r from-yellow-500/10 to-orange-500/10 border border-yellow-500/20 rounded-2xl p-6 mb-8">
+            <div className="text-center mb-6">
+              <div className="flex items-center justify-center mb-4">
+                <MessageSquare className="w-8 h-8 text-yellow-400 mr-3" />
+                <div>
+                  <h2 className="text-xl font-bold text-white">
+                    {language === 'es' ? 'Comparte tu Experiencia' : 'Share Your Experience'}
+                  </h2>
+                  <p className="text-yellow-300">
+                    {language === 'es' 
+                      ? 'Ayuda a otros dejando una reseña de nuestro servicio'
+                      : 'Help others by leaving a review of our service'
+                    }
+                  </p>
+                    {language === 'es' 
+                      ? 'Aún no hay documentos traducidos disponibles'
+                      : 'No translated documents available yet'
+                    }
                   </p>
                 </div>
               </div>
