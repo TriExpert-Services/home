@@ -79,7 +79,7 @@ const TermsOfService: React.FC<TermsOfServiceProps> = ({ onBack }) => {
                       <li>• Las traducciones son realizadas por traductores certificados</li>
                       <li>• Los tiempos de entrega: Normal (8-12 horas), Urgente (1-2 horas)</li>
                       <li>• Servicio urgente tiene un costo adicional del 35%</li>
-                      <li>• Precios: $20/página (1-9 páginas), $17.50/página (10+ páginas)</li>
+                      <li>• Precios: $15/página (precio competitivo del mercado)</li>
                       <li>• Formato físico + digital tiene un costo adicional del 20%</li>
                     </ul>
                   </div>
@@ -178,7 +178,7 @@ const TermsOfService: React.FC<TermsOfServiceProps> = ({ onBack }) => {
                       <li>• Translations are performed by certified translators</li>
                       <li>• Delivery times: Standard (8-12 hours), Urgent (1-2 hours)</li>
                       <li>• Urgent service has an additional 35% cost</li>
-                      <li>• Pricing: $20/page (1-9 pages), $17.50/page (10+ pages)</li>
+                      <li>• Pricing: $15/page (competitive market rate)</li>
                       <li>• Physical + digital format has an additional 20% cost</li>
                     </ul>
                   </div>

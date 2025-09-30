@@ -137,8 +137,8 @@ const TranslationForm = ({ onBack }: { onBack: () => void }) => {
   const calculateCost = (): number => {
     const pages = parseInt(formData.pageCount) || 0;
     
-    // Precio por página: $20 base, $17.50 para 10+ páginas
-    const baseRate = pages >= 10 ? 17.50 : 20.00;
+    // Precio por página: $15 base (competitivo en el mercado)
+    const baseRate = 15.00;
     
     const processingMultiplier = processingTimes.find(p => p.value === formData.processingTime)?.cost || 1;
     const formatMultiplier = formData.desiredFormat === 'both' ? 1.2 : 1;
