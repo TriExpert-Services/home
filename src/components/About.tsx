@@ -16,9 +16,9 @@ const About = () => {
   };
 
   const stats = [
-    { icon: <Users className="w-6 h-6" />, number: "500+", label: t('about.projects') },
+    { icon: <Users className="w-6 h-6" />, number: "750+", label: t('about.projects') },
     { icon: <Award className="w-6 h-6" />, number: "15+", label: t('about.years') },
-    { icon: <TrendingUp className="w-6 h-6" />, number: "98%", label: t('about.satisfaction') },
+    { icon: <TrendingUp className="w-6 h-6" />, number: "99%", label: t('about.satisfaction') },
     { icon: <Target className="w-6 h-6" />, number: "24/7", label: t('about.support') }
   ];
 

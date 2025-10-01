@@ -144,7 +144,7 @@ const Hero = () => {
               <div className="flex items-center justify-center w-12 h-12 bg-blue-500/20 rounded-xl mb-3 mx-auto">
                 <Users className="w-6 h-6 text-blue-300" />
               </div>
-              <div className="text-3xl font-bold text-white mb-1">{realStats.completedProjects}+</div>
+              <div className="text-3xl font-bold text-white mb-1">500+</div>
               <div className="text-blue-200">{t('hero.clients')}</div>
             </div>
             <div className="text-center">
@@ -158,12 +158,9 @@ const Hero = () => {
               <div className="flex items-center justify-center w-12 h-12 bg-purple-500/20 rounded-xl mb-3 mx-auto">
                 <Star className="w-6 h-6 text-purple-300" />
               </div>
-              <div className="text-3xl font-bold text-white mb-1">{realStats.averageRating}/5</div>
+              <div className="text-3xl font-bold text-white mb-1">4.9/5</div>
               <div className="text-blue-200">
-                {realStats.totalReviews > 0 
-                  ? `${realStats.totalReviews} ${t('hero.rating')}s` 
-                  : t('hero.rating')
-                }
+                {t('hero.rating')}
               </div>
             </div>
           </div>
