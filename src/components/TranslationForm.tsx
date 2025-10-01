@@ -491,6 +491,60 @@ const TranslationForm = ({ onBack }: { onBack: () => void }) => {
                 : 'Complete the form to receive a personalized quote'
               }
             </p>
+            
+            {/* Certification Badges */}
+            <div className="flex items-center justify-center space-x-6 mt-6 mb-4">
+              {/* CERTIFIED Badge */}
+              <div className="bg-gradient-to-r from-red-600 to-red-700 text-white px-4 py-2 rounded-lg font-bold text-sm shadow-lg border-2 border-red-500 animate-pulse">
+                <div className="flex items-center space-x-2">
+                  <div className="w-2 h-2 bg-white rounded-full"></div>
+                  <span>CERTIFIED</span>
+                  <div className="w-2 h-2 bg-white rounded-full"></div>
+                </div>
+              </div>
+              
+              {/* ATA Member Badge */}
+              <div className="bg-slate-700/50 backdrop-blur-sm border border-slate-600 rounded-lg px-4 py-2 hover:border-blue-500/50 transition-colors">
+                <div className="flex items-center space-x-2">
+                  <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-full flex items-center justify-center">
+                    <span className="text-white font-bold text-xs">ATA</span>
+                  </div>
+                  <div className="text-left">
+                    <div className="text-white text-xs font-semibold">ATA Member</div>
+                    <div className="text-slate-400 text-xs">Professional Translators</div>
+                  </div>
+                </div>
+              </div>
+              
+              {/* ISO Certified Badge */}
+              <div className="bg-slate-700/50 backdrop-blur-sm border border-slate-600 rounded-lg px-4 py-2 hover:border-green-500/50 transition-colors">
+                <div className="flex items-center space-x-2">
+                  <div className="w-8 h-8 bg-gradient-to-br from-green-500 to-emerald-600 rounded-full flex items-center justify-center">
+                    <span className="text-white font-bold text-xs">ISO</span>
+                  </div>
+                  <div className="text-left">
+                    <div className="text-white text-xs font-semibold">ISO 17100</div>
+                    <div className="text-slate-400 text-xs">Quality Standard</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            
+            {/* Trust Indicators */}
+            <div className="flex items-center justify-center space-x-8 text-sm text-slate-400 mb-4">
+              <div className="flex items-center space-x-1">
+                <div className="w-2 h-2 bg-green-400 rounded-full"></div>
+                <span>{language === 'es' ? 'Traductores Certificados' : 'Certified Translators'}</span>
+              </div>
+              <div className="flex items-center space-x-1">
+                <div className="w-2 h-2 bg-blue-400 rounded-full"></div>
+                <span>{language === 'es' ? 'Entrega Garantizada' : 'Guaranteed Delivery'}</span>
+              </div>
+              <div className="flex items-center space-x-1">
+                <div className="w-2 h-2 bg-purple-400 rounded-full"></div>
+                <span>{language === 'es' ? 'Aceptado Oficialmente' : 'Officially Accepted'}</span>
+              </div>
+            </div>
           </div>
         </div>
 
