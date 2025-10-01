@@ -856,6 +856,34 @@ const TranslationForm = ({ onBack }: { onBack: () => void }) => {
             </div>
           )}
 
+          {/* Professional Guarantees */}
+          <div className="bg-gradient-to-r from-green-500/10 to-emerald-500/10 border border-green-500/20 rounded-2xl p-6 mb-6">
+            <div className="text-center">
+              <h3 className="text-lg font-bold text-green-400 mb-4">
+                {language === 'es' ? '🛡️ Garantías Profesionales' : '🛡️ Professional Guarantees'}
+              </h3>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+                <div className="flex items-center justify-center space-x-2">
+                  <CheckCircle className="w-5 h-5 text-green-400" />
+                  <span className="text-slate-300">
+                    {language === 'es' ? 'Aceptado por USCIS' : 'USCIS Accepted'}
+                  </span>
+                </div>
+                <div className="flex items-center justify-center space-x-2">
+                  <CheckCircle className="w-5 h-5 text-green-400" />
+                  <span className="text-slate-300">
+                    {language === 'es' ? 'Traductor Certificado' : 'Certified Translator'}
+                  </span>
+                </div>
+                <div className="flex items-center justify-center space-x-2">
+                  <CheckCircle className="w-5 h-5 text-green-400" />
+                  <span className="text-slate-300">
+                    {language === 'es' ? 'Entrega Garantizada' : 'Guaranteed Delivery'}
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
           <button
             type="submit"
             disabled={isSubmitting}
@@ -885,6 +913,31 @@ const TranslationForm = ({ onBack }: { onBack: () => void }) => {
                 {language === 'es' ? 'Recibirás una respuesta en minutos' : 'You will receive a response in minutes'}
               </span>
             </div>
+            
+            {/* Professional Credentials Footer */}
+            <div className="bg-slate-800/50 backdrop-blur-sm rounded-xl p-4 mt-4 border border-slate-600">
+              <div className="flex items-center justify-center space-x-6 text-xs text-slate-400">
+                <div className="flex items-center space-x-1">
+                  <div className="w-6 h-6 bg-blue-600 rounded-full flex items-center justify-center">
+                    <span className="text-white font-bold text-xs">ATA</span>
+                  </div>
+                  <span>American Translators Association</span>
+                </div>
+                <div className="flex items-center space-x-1">
+                  <div className="w-6 h-6 bg-green-600 rounded-full flex items-center justify-center">
+                    <span className="text-white font-bold text-xs">ISO</span>
+                  </div>
+                  <span>ISO 17100 Certified</span>
+                </div>
+                <div className="flex items-center space-x-1">
+                  <div className="w-6 h-6 bg-red-600 rounded-full flex items-center justify-center">
+                    <span className="text-white font-bold text-xs">FL</span>
+                  </div>
+                  <span>Florida State Certified</span>
+                </div>
+              </div>
+            </div>
+            
             <div className="flex justify-center space-x-1">
               <div className="w-2 h-2 bg-purple-400 rounded-full animate-pulse"></div>
               <div className="w-2 h-2 bg-indigo-400 rounded-full animate-pulse delay-100"></div>
