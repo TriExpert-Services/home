@@ -1,17 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import {
-  Shield, Users, FileText, Settings, Home, Edit, Eye, Download, Trash2, ExternalLink,
-  LogOut, RefreshCcw, Star, AlertCircle, CheckCircle, X, XCircle, AlertTriangle,
-  Calendar, Clock, DollarSign, TrendingUp, BarChart3, Plus, Search, Filter,
-  SortAsc, SortDesc, MoreVertical, ChevronLeft, ChevronRight, ChevronDown, ChevronUp,
-  MessageSquare, Phone, Mail, Send, Building, Target, Globe, MapPin, User, FolderOpen,
-  BookOpen
-} from 'lucide-react';
+import { Shield, Users, FileText, Settings, Home, CreditCard as Edit, Eye, Download, Trash2, ExternalLink, LogOut, RefreshCcw, Star, AlertCircle, CheckCircle, X, XCircle, AlertTriangle, Calendar, Clock, DollarSign, TrendingUp, BarChart3, Plus, Search, Filter, Import as SortAsc, Dessert as SortDesc, MoreVertical, ChevronLeft, ChevronRight, ChevronDown, ChevronUp, MessageSquare, Phone, Mail, Send, Building, Target, Globe, MapPin, User, FolderOpen, BookOpen, Bot } from 'lucide-react';
 import { useAdmin } from '../contexts/AdminContext';
 import { supabase } from '../lib/supabase';
 import DocumentManagement from './DocumentManagement';
 import ProjectManagement from './ProjectManagement';
 import BlogManagement from './BlogManagement';
+import WhatsAppChatHistory from './WhatsAppChatHistory';
+import N8nConfiguration from './N8nConfiguration';
 
 interface TranslationRequest {
   id: string;
@@ -429,8 +424,8 @@ const AdminPanel: React.FC = () => {
               <button
                 onClick={() => setActiveTab('leads')}
                 className={`w-full flex items-center space-x-3 px-4 py-3 rounded-xl transition-all ${
-                  activeTab === 'leads' 
-                    ? 'bg-white/20 text-white' 
+                  activeTab === 'leads'
+                    ? 'bg-white/20 text-white'
                     : 'text-white/70 hover:bg-white/10 hover:text-white'
                 }`}
               >
@@ -442,10 +437,22 @@ const AdminPanel: React.FC = () => {
               </button>
 
               <button
+                onClick={() => setActiveTab('whatsapp')}
+                className={`w-full flex items-center space-x-3 px-4 py-3 rounded-xl transition-all ${
+                  activeTab === 'whatsapp'
+                    ? 'bg-white/20 text-white'
+                    : 'text-white/70 hover:bg-white/10 hover:text-white'
+                }`}
+              >
+                <Bot className="w-5 h-5" />
+                <span>WhatsApp Agent</span>
+              </button>
+
+              <button
                 onClick={() => setActiveTab('settings')}
                 className={`w-full flex items-center space-x-3 px-4 py-3 rounded-xl transition-all ${
-                  activeTab === 'settings' 
-                    ? 'bg-white/20 text-white' 
+                  activeTab === 'settings'
+                    ? 'bg-white/20 text-white'
                     : 'text-white/70 hover:bg-white/10 hover:text-white'
                 }`}
               >
@@ -1161,6 +1168,9 @@ const AdminPanel: React.FC = () => {
             </div>
           )}
 
+          {/* WhatsApp Agent Tab */}
+          {activeTab === 'whatsapp' && <WhatsAppChatHistory />}
+
           {/* Settings Tab */}
           {activeTab === 'settings' && (
             <div>
@@ -1171,7 +1181,12 @@ const AdminPanel: React.FC = () => {
                 </div>
               </div>
 
-              <div className="bg-white/10 backdrop-blur-xl rounded-2xl p-8 border border-white/20">
+              {/* N8N Configuration Section */}
+              <N8nConfiguration />
+
+              {/* System Settings */}
+              <div className="bg-white/10 backdrop-blur-xl rounded-2xl p-8 border border-white/20 mt-6">
+                <h2 className="text-2xl font-bold text-white mb-6">System Settings</h2>
                 <div className="space-y-6">
                   <div className="flex items-center justify-between py-4 border-b border-white/10">
                     <div>
