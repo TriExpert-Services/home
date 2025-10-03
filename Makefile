@@ -85,7 +85,7 @@ clean:
 # Clean everything including volumes
 clean-all:
 	@echo "⚠️  WARNING: This will delete all data!"
-	@read -p "Are you sure? (yes/no): " confirm; \
+	@read -p "Are you sure? (yes/no): \" confirm; \
 	if [ "$$confirm" = "yes" ]; then \
 		docker-compose down -v; \
 		echo "All containers and volumes removed"; \
@@ -107,7 +107,7 @@ restore:
 	@echo "Available backups:"
 	@ls -lh backups/
 	@echo ""
-	@read -p "Enter database backup filename: " db_file; \
+	@read -p "Enter database backup filename: \" db_file; \
 	cat backups/$$db_file | docker-compose exec -T postgres psql -U postgres postgres
 	@echo "Database restored"
 
