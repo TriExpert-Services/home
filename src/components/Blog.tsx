@@ -1,10 +1,34 @@
 import React, { useState, useEffect } from 'react';
-import { 
-  BookOpen, Calendar, User, Eye, Heart, ArrowLeft, Clock, 
-  Tag, Share2, Search, Filter, ChevronRight, Star, TrendingUp 
+import DOMPurify from 'dompurify';
+import {
+  BookOpen, Calendar, User, Eye, Heart, ArrowLeft, Clock,
+  Tag, Share2, Search, Filter, ChevronRight, Star, TrendingUp
 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useLanguage } from '../contexts/LanguageContext';
+
+const SANITIZE_CONFIG = {
+  ALLOWED_TAGS: [
+    'p', 'br', 'strong', 'em', 'u', 's', 'sub', 'sup',
+    'h1', 'h2', 'h3', 'h4', 'h5', 'h6',
+    'ul', 'ol', 'li',
+    'a', 'blockquote', 'code', 'pre',
+    'table', 'thead', 'tbody', 'tr', 'th', 'td',
+    'img', 'figure', 'figcaption', 'hr', 'span', 'div',
+  ],
+  ALLOWED_ATTR: ['href', 'title', 'alt', 'src', 'class', 'target', 'rel'],
+  ALLOWED_URI_REGEXP: /^(?:https?|mailto|tel):/i,
+  ADD_ATTR: ['target', 'rel'],
+};
+
+function sanitizeBlogHtml(dirty: string): string {
+  const clean = DOMPurify.sanitize(dirty, SANITIZE_CONFIG);
+  // Force every external link to open safely.
+  return clean.replace(
+    /<a\s+([^>]*?)href="(https?:[^"]+)"([^>]*)>/gi,
+    '<a $1href="$2"$3 target="_blank" rel="noopener noreferrer nofollow">'
+  );
+}
 
 interface BlogPost {
   id: string;
@@ -27,6 +51,16 @@ interface BlogPost {
   read_time_minutes: number;
   difficulty_level: string;
   created_at: string;
+  content_type?: 'html' | 'markdown' | 'plain';
+}
+
+function getOrCreateClientId(): string {
+  let id = localStorage.getItem('triexpert-client-id');
+  if (!id) {
+    id = (crypto?.randomUUID?.() ?? `c_${Date.now()}_${Math.random().toString(36).slice(2)}`);
+    localStorage.setItem('triexpert-client-id', id);
+  }
+  return id;
 }
 
 interface BlogProps {
@@ -75,12 +109,21 @@ const Blog: React.FC<BlogProps> = ({ onBack }) => {
 
   const handleLike = async (postId: string) => {
     try {
-      const clientIP = '192.168.1.1'; // In production, get real IP
-      
+      // Per-browser stable id mapped into a deterministic 10.x.x.x address
+      // so the inet-typed `p_ip_address` parameter accepts it. Replaces the
+      // previous hardcoded "192.168.1.1" that made every visitor share a row.
+      // TODO: replace toggle_blog_like with a client_id-aware RPC.
+      const clientId = getOrCreateClientId();
+      let h = 2166136261;
+      for (let i = 0; i < clientId.length; i++) {
+        h = Math.imul(h ^ clientId.charCodeAt(i), 16777619) >>> 0;
+      }
+      const fakeIp = `10.${(h >> 16) & 0xff}.${(h >> 8) & 0xff}.${h & 0xff}`;
+
       const { data, error } = await supabase
         .rpc('toggle_blog_like', {
           p_blog_post_id: postId,
-          p_ip_address: clientIP
+          p_ip_address: fakeIp
         });
 
       if (error) throw error;
@@ -239,11 +282,11 @@ const Blog: React.FC<BlogProps> = ({ onBack }) => {
             <div className="prose prose-invert max-w-none">
               <div className="text-slate-300 leading-relaxed">
                 {selectedPost.content_type === 'html' ? (
-                  <div 
-                    dangerouslySetInnerHTML={{ __html: getContent(selectedPost) }}
-                    className="prose prose-invert prose-slate max-w-none 
-                               prose-headings:text-slate-200 prose-p:text-slate-300 
-                               prose-strong:text-white prose-a:text-blue-400 
+                  <div
+                    dangerouslySetInnerHTML={{ __html: sanitizeBlogHtml(getContent(selectedPost)) }}
+                    className="prose prose-invert prose-slate max-w-none
+                               prose-headings:text-slate-200 prose-p:text-slate-300
+                               prose-strong:text-white prose-a:text-blue-400
                                prose-blockquote:border-blue-500 prose-blockquote:text-slate-400
                                prose-code:bg-slate-800 prose-code:text-blue-300
                                prose-pre:bg-slate-800 prose-pre:border prose-pre:border-slate-600"

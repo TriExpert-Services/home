@@ -139,11 +139,22 @@ const BlogManagement: React.FC = () => {
 
   const savePost = async (publishNow: boolean = false) => {
     try {
+      // Strip <script>, on*= handlers, and other dangerous markup before
+      // persisting. Render-side sanitation in Blog.tsx is the real defense
+      // (in case content is created via API or migrated from elsewhere),
+      // but stripping at write time keeps the DB clean too.
+      const stripDangerous = (html: string) =>
+        html
+          .replace(/<script\b[\s\S]*?<\/script>/gi, '')
+          .replace(/<\/?(iframe|object|embed|link|meta|style)\b[^>]*>/gi, '')
+          .replace(/\son\w+\s*=\s*("[^"]*"|'[^']*'|[^\s>]+)/gi, '')
+          .replace(/javascript:/gi, '');
+
       const postData = {
         title_en: postForm.title_en,
         title_es: postForm.title_es,
-        content_en: postForm.content_en,
-        content_es: postForm.content_es,
+        content_en: stripDangerous(postForm.content_en ?? ''),
+        content_es: stripDangerous(postForm.content_es ?? ''),
         excerpt_en: postForm.excerpt_en,
         excerpt_es: postForm.excerpt_es,
         category: postForm.category,
