@@ -1,11 +1,24 @@
 import { createClient } from 'npm:@supabase/supabase-js@2.39.0';
 import { Client } from 'https://deno.land/x/postgres@v0.17.0/mod.ts';
 
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
-  'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Client-Info, Apikey',
-};
+const ALLOWED_ORIGINS = (Deno.env.get('ALLOWED_ORIGINS') ?? '*')
+  .split(',')
+  .map((o) => o.trim());
+
+function corsHeadersFor(req: Request): Record<string, string> {
+  const origin = req.headers.get('Origin') ?? '';
+  const allow =
+    ALLOWED_ORIGINS.includes('*') || ALLOWED_ORIGINS.includes(origin)
+      ? origin || '*'
+      : ALLOWED_ORIGINS[0] ?? '';
+  return {
+    'Access-Control-Allow-Origin': allow,
+    'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+    'Access-Control-Allow-Headers':
+      'Content-Type, Authorization, X-Client-Info, Apikey',
+    Vary: 'Origin',
+  };
+}
 
 interface DatabaseConfig {
   host: string;
@@ -17,12 +30,37 @@ interface DatabaseConfig {
   table_name: string;
 }
 
+const IDENT_RE = /^[A-Za-z_][A-Za-z0-9_]{0,62}$/;
+
+function quoteIdent(name: string): string {
+  if (!IDENT_RE.test(name)) {
+    throw new Error(`Invalid identifier: ${name}`);
+  }
+  return `"${name}"`;
+}
+
+function intParam(raw: string | null, fallback: number, min = 0, max = 1000): number {
+  const n = raw === null ? fallback : parseInt(raw, 10);
+  if (!Number.isFinite(n) || n < min || n > max) return fallback;
+  return n;
+}
+
+function isoParam(raw: string | null, fallback: string): string {
+  if (!raw) return fallback;
+  const d = new Date(raw);
+  if (isNaN(d.getTime())) return fallback;
+  return d.toISOString();
+}
+
+function qualifiedTable(config: DatabaseConfig): string {
+  return `${quoteIdent(config.schema)}.${quoteIdent(config.table_name)}`;
+}
+
 Deno.serve(async (req: Request) => {
+  const corsHeaders = corsHeadersFor(req);
+
   if (req.method === 'OPTIONS') {
-    return new Response(null, {
-      status: 200,
-      headers: corsHeaders,
-    });
+    return new Response(null, { status: 200, headers: corsHeaders });
   }
 
   try {
@@ -31,23 +69,40 @@ Deno.serve(async (req: Request) => {
     const supabase = createClient(supabaseUrl, supabaseKey);
 
     const authHeader = req.headers.get('Authorization');
-    if (!authHeader) {
-      throw new Error('Missing authorization header');
+    if (!authHeader?.startsWith('Bearer ')) {
+      return new Response(
+        JSON.stringify({ success: false, error: 'Missing bearer token' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
     }
 
-    const { data: { user }, error: authError } = await supabase.auth.getUser(
-      authHeader.replace('Bearer ', '')
-    );
+    const token = authHeader.slice('Bearer '.length);
+    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
 
     if (authError || !user) {
-      throw new Error('Unauthorized');
+      return new Response(
+        JSON.stringify({ success: false, error: 'Unauthorized' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    const { data: isAdminRow, error: adminErr } = await supabase.rpc('is_admin', {
+      check_user_id: user.id,
+    });
+    if (adminErr || isAdminRow !== true) {
+      return new Response(
+        JSON.stringify({ success: false, error: 'Forbidden' }),
+        { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
     }
 
     const url = new URL(req.url);
     const action = url.searchParams.get('action');
-
     if (!action) {
-      throw new Error('Missing action parameter');
+      return new Response(
+        JSON.stringify({ success: false, error: 'Missing action parameter' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
     }
 
     const { data: config, error: configError } = await supabase
@@ -62,15 +117,11 @@ Deno.serve(async (req: Request) => {
           success: false,
           error: 'No active n8n database configuration found. Please configure it in Settings.',
         }),
-        {
-          status: 400,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        }
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
     let result;
-
     switch (action) {
       case 'test_connection':
         result = await testConnection(config);
@@ -88,7 +139,10 @@ Deno.serve(async (req: Request) => {
         result = await searchMessages(config, url.searchParams);
         break;
       default:
-        throw new Error(`Unknown action: ${action}`);
+        return new Response(
+          JSON.stringify({ success: false, error: `Unknown action: ${action}` }),
+          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
     }
 
     await supabase.from('n8n_connection_logs').insert({
@@ -100,215 +154,161 @@ Deno.serve(async (req: Request) => {
     });
 
     return new Response(
-      JSON.stringify({
-        success: true,
-        data: result,
-      }),
-      {
-        status: 200,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      }
+      JSON.stringify({ success: true, data: result }),
+      { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   } catch (error) {
     console.error('Error in n8n-chat-proxy:', error);
-
     return new Response(
       JSON.stringify({
         success: false,
-        error: error.message || 'Internal server error',
+        error: error instanceof Error ? error.message : 'Internal server error',
       }),
-      {
-        status: 500,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      }
+      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   }
 });
 
-async function testConnection(config: DatabaseConfig): Promise<any> {
-  const client = new Client({
+async function newClient(config: DatabaseConfig): Promise<Client> {
+  return new Client({
     hostname: config.host,
     port: config.port,
     user: config.username,
     password: config.password,
     database: config.database_name,
+    tls: { enabled: true, enforce: false },
   });
+}
 
+async function testConnection(config: DatabaseConfig): Promise<unknown> {
+  const client = await newClient(config);
   try {
     await client.connect();
-    const result = await client.queryObject(`SELECT COUNT(*) as count FROM ${config.schema}.${config.table_name}`);
-    await client.end();
-
+    const tbl = qualifiedTable(config);
+    const result = await client.queryObject(`SELECT COUNT(*)::bigint AS count FROM ${tbl}`);
     return {
       connected: true,
       message: 'Connection successful',
-      record_count: result.rows[0]?.count || 0,
+      record_count: Number((result.rows[0] as { count: bigint }).count) || 0,
     };
   } catch (error) {
-    try {
-      await client.end();
-    } catch (e) {
-      // Ignore cleanup errors
-    }
-    throw new Error(`Connection failed: ${error.message}`);
+    throw new Error(`Connection failed: ${error instanceof Error ? error.message : String(error)}`);
+  } finally {
+    try { await client.end(); } catch { /* ignore */ }
   }
 }
 
-async function getClients(config: DatabaseConfig, params: URLSearchParams): Promise<any> {
-  const client = new Client({
-    hostname: config.host,
-    port: config.port,
-    user: config.username,
-    password: config.password,
-    database: config.database_name,
-  });
-
+async function getClients(config: DatabaseConfig, params: URLSearchParams): Promise<unknown> {
+  const client = await newClient(config);
   try {
     await client.connect();
 
-    const limit = params.get('limit') || '50';
-    const offset = params.get('offset') || '0';
-    const search = params.get('search') || '';
+    const limit  = intParam(params.get('limit'), 50, 1, 500);
+    const offset = intParam(params.get('offset'), 0, 0, 1_000_000);
+    const search = params.get('search') ?? '';
 
-    let query = `
-      SELECT 
-        session_id as phone_number,
-        COUNT(*) as message_count,
-        MAX(created_at) as last_message_at,
-        MIN(created_at) as first_message_at
-      FROM ${config.schema}.${config.table_name}
-    `;
-
-    if (search) {
-      query += ` WHERE session_id ILIKE '%${search}%'`;
-    }
-
-    query += `
-      GROUP BY session_id
-      ORDER BY MAX(created_at) DESC
-      LIMIT ${limit}
-      OFFSET ${offset}
-    `;
-
-    const result = await client.queryObject(query);
-    await client.end();
-
-    return result.rows;
-  } catch (error) {
-    try {
-      await client.end();
-    } catch (e) {
-      // Ignore cleanup errors
-    }
-    throw new Error(`Failed to get clients: ${error.message}`);
-  }
-}
-
-async function getConversation(config: DatabaseConfig, params: URLSearchParams): Promise<any> {
-  const phoneNumber = params.get('phone_number');
-  if (!phoneNumber) {
-    throw new Error('Missing phone_number parameter');
-  }
-
-  const client = new Client({
-    hostname: config.host,
-    port: config.port,
-    user: config.username,
-    password: config.password,
-    database: config.database_name,
-  });
-
-  try {
-    await client.connect();
-
-    const limit = params.get('limit') || '100';
-    const offset = params.get('offset') || '0';
+    const tbl = qualifiedTable(config);
+    const where = search ? 'WHERE session_id ILIKE $1' : '';
+    const sqlParams: unknown[] = search ? [`%${search}%`] : [];
 
     const query = `
-      SELECT *
-      FROM ${config.schema}.${config.table_name}
-      WHERE session_id = '${phoneNumber}'
-      ORDER BY created_at ASC
-      LIMIT ${limit}
-      OFFSET ${offset}
+      SELECT
+        session_id AS phone_number,
+        COUNT(*)   AS message_count,
+        MAX(created_at) AS last_message_at,
+        MIN(created_at) AS first_message_at
+      FROM ${tbl}
+      ${where}
+      GROUP BY session_id
+      ORDER BY MAX(created_at) DESC
+      LIMIT ${limit} OFFSET ${offset}
     `;
 
-    const result = await client.queryObject(query);
-    await client.end();
-
+    const result = await client.queryObject(query, sqlParams);
     return result.rows;
   } catch (error) {
-    try {
-      await client.end();
-    } catch (e) {
-      // Ignore cleanup errors
-    }
-    throw new Error(`Failed to get conversation: ${error.message}`);
+    throw new Error(`Failed to get clients: ${error instanceof Error ? error.message : String(error)}`);
+  } finally {
+    try { await client.end(); } catch { /* ignore */ }
   }
 }
 
-async function getStatistics(config: DatabaseConfig, params: URLSearchParams): Promise<any> {
-  const client = new Client({
-    hostname: config.host,
-    port: config.port,
-    user: config.username,
-    password: config.password,
-    database: config.database_name,
-  });
+async function getConversation(config: DatabaseConfig, params: URLSearchParams): Promise<unknown> {
+  const phoneNumber = params.get('phone_number');
+  if (!phoneNumber) throw new Error('Missing phone_number parameter');
 
+  const client = await newClient(config);
   try {
     await client.connect();
 
-    const startDate = params.get('start_date') || new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
-    const endDate = params.get('end_date') || new Date().toISOString();
+    const limit  = intParam(params.get('limit'), 100, 1, 1000);
+    const offset = intParam(params.get('offset'), 0, 0, 1_000_000);
+    const tbl = qualifiedTable(config);
+
+    const result = await client.queryObject(
+      `SELECT *
+         FROM ${tbl}
+        WHERE session_id = $1
+        ORDER BY created_at ASC
+        LIMIT ${limit} OFFSET ${offset}`,
+      [phoneNumber]
+    );
+    return result.rows;
+  } catch (error) {
+    throw new Error(`Failed to get conversation: ${error instanceof Error ? error.message : String(error)}`);
+  } finally {
+    try { await client.end(); } catch { /* ignore */ }
+  }
+}
+
+async function getStatistics(config: DatabaseConfig, params: URLSearchParams): Promise<unknown> {
+  const client = await newClient(config);
+  try {
+    await client.connect();
+
+    const startDate = isoParam(
+      params.get('start_date'),
+      new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString()
+    );
+    const endDate = isoParam(params.get('end_date'), new Date().toISOString());
+    const tbl = qualifiedTable(config);
 
     const totalQuery = `
-      SELECT 
-        COUNT(*) as total_messages,
-        COUNT(DISTINCT session_id) as total_clients
-      FROM ${config.schema}.${config.table_name}
-      WHERE created_at BETWEEN '${startDate}' AND '${endDate}'
+      SELECT COUNT(*) AS total_messages,
+             COUNT(DISTINCT session_id) AS total_clients
+        FROM ${tbl}
+       WHERE created_at BETWEEN $1 AND $2
     `;
-
     const dailyQuery = `
-      SELECT 
-        DATE(created_at) as date,
-        COUNT(*) as message_count
-      FROM ${config.schema}.${config.table_name}
-      WHERE created_at BETWEEN '${startDate}' AND '${endDate}'
-      GROUP BY DATE(created_at)
-      ORDER BY date ASC
+      SELECT DATE(created_at) AS date, COUNT(*) AS message_count
+        FROM ${tbl}
+       WHERE created_at BETWEEN $1 AND $2
+       GROUP BY DATE(created_at)
+       ORDER BY date ASC
     `;
-
     const topClientsQuery = `
-      SELECT 
-        session_id as phone_number,
-        COUNT(*) as message_count
-      FROM ${config.schema}.${config.table_name}
-      WHERE created_at BETWEEN '${startDate}' AND '${endDate}'
-      GROUP BY session_id
-      ORDER BY COUNT(*) DESC
-      LIMIT 15
+      SELECT session_id AS phone_number, COUNT(*) AS message_count
+        FROM ${tbl}
+       WHERE created_at BETWEEN $1 AND $2
+       GROUP BY session_id
+       ORDER BY COUNT(*) DESC
+       LIMIT 15
     `;
-
     const hourlyQuery = `
-      SELECT 
-        EXTRACT(HOUR FROM created_at) as hour,
-        COUNT(*) as message_count
-      FROM ${config.schema}.${config.table_name}
-      WHERE created_at BETWEEN '${startDate}' AND '${endDate}'
-      GROUP BY EXTRACT(HOUR FROM created_at)
-      ORDER BY hour ASC
+      SELECT EXTRACT(HOUR FROM created_at) AS hour, COUNT(*) AS message_count
+        FROM ${tbl}
+       WHERE created_at BETWEEN $1 AND $2
+       GROUP BY EXTRACT(HOUR FROM created_at)
+       ORDER BY hour ASC
     `;
 
+    const args = [startDate, endDate];
     const [totalResult, dailyResult, topClientsResult, hourlyResult] = await Promise.all([
-      client.queryObject(totalQuery),
-      client.queryObject(dailyQuery),
-      client.queryObject(topClientsQuery),
-      client.queryObject(hourlyQuery),
+      client.queryObject(totalQuery, args),
+      client.queryObject(dailyQuery, args),
+      client.queryObject(topClientsQuery, args),
+      client.queryObject(hourlyQuery, args),
     ]);
-
-    await client.end();
 
     return {
       totals: totalResult.rows[0],
@@ -317,52 +317,35 @@ async function getStatistics(config: DatabaseConfig, params: URLSearchParams): P
       hourly: hourlyResult.rows,
     };
   } catch (error) {
-    try {
-      await client.end();
-    } catch (e) {
-      // Ignore cleanup errors
-    }
-    throw new Error(`Failed to get statistics: ${error.message}`);
+    throw new Error(`Failed to get statistics: ${error instanceof Error ? error.message : String(error)}`);
+  } finally {
+    try { await client.end(); } catch { /* ignore */ }
   }
 }
 
-async function searchMessages(config: DatabaseConfig, params: URLSearchParams): Promise<any> {
+async function searchMessages(config: DatabaseConfig, params: URLSearchParams): Promise<unknown> {
   const searchTerm = params.get('query');
-  if (!searchTerm) {
-    throw new Error('Missing query parameter');
-  }
+  if (!searchTerm) throw new Error('Missing query parameter');
 
-  const client = new Client({
-    hostname: config.host,
-    port: config.port,
-    user: config.username,
-    password: config.password,
-    database: config.database_name,
-  });
-
+  const client = await newClient(config);
   try {
     await client.connect();
 
-    const limit = params.get('limit') || '50';
+    const limit = intParam(params.get('limit'), 50, 1, 500);
+    const tbl = qualifiedTable(config);
 
-    const query = `
-      SELECT *
-      FROM ${config.schema}.${config.table_name}
-      WHERE message ILIKE '%${searchTerm}%'
-      ORDER BY created_at DESC
-      LIMIT ${limit}
-    `;
-
-    const result = await client.queryObject(query);
-    await client.end();
-
+    const result = await client.queryObject(
+      `SELECT *
+         FROM ${tbl}
+        WHERE message ILIKE $1
+        ORDER BY created_at DESC
+        LIMIT ${limit}`,
+      [`%${searchTerm}%`]
+    );
     return result.rows;
   } catch (error) {
-    try {
-      await client.end();
-    } catch (e) {
-      // Ignore cleanup errors
-    }
-    throw new Error(`Failed to search messages: ${error.message}`);
+    throw new Error(`Failed to search messages: ${error instanceof Error ? error.message : String(error)}`);
+  } finally {
+    try { await client.end(); } catch { /* ignore */ }
   }
 }

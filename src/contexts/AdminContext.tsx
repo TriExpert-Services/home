@@ -12,7 +12,7 @@ interface AdminContextType {
   user: AdminUser | null;
   isLoading: boolean;
   login: (email: string, password: string) => Promise<boolean>;
-  logout: () => void;
+  logout: () => Promise<void>;
   isAuthenticated: boolean;
 }
 
@@ -30,146 +30,112 @@ interface AdminProviderProps {
   children: ReactNode;
 }
 
+/**
+ * Resolve the admin profile for a Supabase auth user by querying server-side
+ * RLS-protected tables. Returns null if the user is not an active admin.
+ *
+ * The previous implementation used a hardcoded email allowlist in the client
+ * bundle as the only authorization gate; that list was visible in the JS
+ * bundle and (worse) duplicated in three places. Authorization now lives
+ * server-side: `public.is_admin(auth.uid())` (SECURITY DEFINER) plus the
+ * `user_profiles.is_admin` flag are the source of truth.
+ */
+async function loadAdminProfile(authUserId: string, email: string | null | undefined): Promise<AdminUser | null> {
+  const { data: isAdminFlag, error: rpcError } = await supabase.rpc('is_admin', {
+    check_user_id: authUserId,
+  });
+
+  if (rpcError || isAdminFlag !== true) return null;
+
+  const { data: profile } = await supabase
+    .from('user_profiles')
+    .select('role, created_at')
+    .eq('user_id', authUserId)
+    .maybeSingle();
+
+  return {
+    id: authUserId,
+    email: email ?? '',
+    role: (profile?.role as 'admin' | 'superadmin' | undefined) ?? 'admin',
+    created_at: profile?.created_at ?? new Date().toISOString(),
+  };
+}
+
 export const AdminProvider: React.FC<AdminProviderProps> = ({ children }) => {
   const [user, setUser] = useState<AdminUser | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    // Check for existing session on load
-    const checkSession = async () => {
+    let cancelled = false;
+
+    const init = async () => {
       try {
-        const { data: { session }, error } = await supabase.auth.getSession();
-        
-        if (error) {
-          console.error('Session error:', error);
-          setIsLoading(false);
-          return;
-        }
+        const { data: { session } } = await supabase.auth.getSession();
 
         if (session?.user) {
-          console.log('Existing session found:', session.user.email);
-          
-          // Check if user is admin
-          const adminEmails = [
-            'admin@triexpertservice.com',
-            'support@triexpertservice.com',
-            'yunior@triexpertservice.com',
-            'info@triexpertservice.com'
-          ];
+          const adminProfile = await loadAdminProfile(session.user.id, session.user.email);
+          if (cancelled) return;
 
-          if (adminEmails.includes(session.user.email || '')) {
-            const role = session.user.email === 'admin@triexpertservice.com' ? 'superadmin' : 'admin';
-            
-            const userData: AdminUser = {
-              id: session.user.id,
-              email: session.user.email || '',
-              role: role,
-              created_at: session.user.created_at || new Date().toISOString()
-            };
-
-            setUser(userData);
-            console.log('Admin user authenticated:', userData);
-
-            // Update last login
+          if (adminProfile) {
+            setUser(adminProfile);
             try {
               await supabase.rpc('update_last_login', { user_uuid: session.user.id });
-            } catch (loginError) {
-              console.warn('Could not update last login:', loginError);
+            } catch {
+              /* non-fatal */
             }
           } else {
-            console.warn('User is not authorized admin:', session.user.email);
             await supabase.auth.signOut();
           }
-        } else {
-          console.log('No active session');
         }
-      } catch (error) {
-        console.error('Session check error:', error);
+      } catch (err) {
+        console.error('Session init failed', err);
       } finally {
-        setIsLoading(false);
+        if (!cancelled) setIsLoading(false);
       }
     };
 
-    checkSession();
+    init();
 
-    // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      console.log('Auth state changed:', event, session?.user?.email);
-      
       if (event === 'SIGNED_OUT' || !session) {
         setUser(null);
-      } else if (event === 'SIGNED_IN' && session?.user) {
-        // Check if user is admin
-        const adminEmails = [
-          'admin@triexpertservice.com',
-          'support@triexpertservice.com',
-          'yunior@triexpertservice.com',
-          'info@triexpertservice.com'
-        ];
+        return;
+      }
 
-        if (adminEmails.includes(session.user.email || '')) {
-          const role = session.user.email === 'admin@triexpertservice.com' ? 'superadmin' : 'admin';
-          
-          const userData: AdminUser = {
-            id: session.user.id,
-            email: session.user.email || '',
-            role: role,
-            created_at: session.user.created_at || new Date().toISOString()
-          };
+      if (event === 'SIGNED_IN' && session.user) {
+        const adminProfile = await loadAdminProfile(session.user.id, session.user.email);
+        if (cancelled) return;
 
-          setUser(userData);
+        if (adminProfile) {
+          setUser(adminProfile);
         } else {
-          console.warn('User is not authorized admin:', session.user.email);
           await supabase.auth.signOut();
+          setUser(null);
         }
       }
     });
 
-    return () => subscription.unsubscribe();
+    return () => {
+      cancelled = true;
+      subscription.unsubscribe();
+    };
   }, []);
 
   const login = async (email: string, password: string): Promise<boolean> => {
     try {
-      console.log('Attempting login with:', { email });
-      
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email,
-        password
-      });
+      const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+      if (error || !data.user) return false;
 
-      if (error) {
-        console.error('Authentication error:', error.message);
-        return false;
-      }
-
-      if (!data.user) {
-        console.error('No user data returned');
-        return false;
-      }
-
-      console.log('User authenticated:', data.user.email);
-
-      // Check if user is admin
-      const adminEmails = [
-        'admin@triexpertservice.com',
-        'support@triexpertservice.com',
-        'yunior@triexpertservice.com',
-        'info@triexpertservice.com'
-      ];
-
-      if (!adminEmails.includes(data.user.email || '')) {
-        console.error('User is not admin:', data.user.email);
+      const adminProfile = await loadAdminProfile(data.user.id, data.user.email);
+      if (!adminProfile) {
         await supabase.auth.signOut();
         return false;
       }
 
-      console.log('Admin user verified');
-
-      // User will be set by the auth state change listener
+      setUser(adminProfile);
       return true;
-
-    } catch (error) {
-      console.error('Login error:', error);
+    } catch (err) {
+      console.error('Login failed', err);
       return false;
     }
   };
@@ -177,21 +143,21 @@ export const AdminProvider: React.FC<AdminProviderProps> = ({ children }) => {
   const logout = async () => {
     try {
       await supabase.auth.signOut();
+    } finally {
       setUser(null);
-      console.log('User logged out');
-    } catch (error) {
-      console.error('Logout error:', error);
     }
   };
 
   return (
-    <AdminContext.Provider value={{
-      user,
-      isLoading,
-      login,
-      logout,
-      isAuthenticated: !!user
-    }}>
+    <AdminContext.Provider
+      value={{
+        user,
+        isLoading,
+        login,
+        logout,
+        isAuthenticated: !!user,
+      }}
+    >
       {children}
     </AdminContext.Provider>
   );

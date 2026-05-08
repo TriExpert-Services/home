@@ -6,6 +6,7 @@ import { useLanguage } from '../contexts/LanguageContext';
 interface FormData {
   name: string;
   email: string;
+  phone: string;
   company: string;
   service: string;
   message: string;
@@ -14,181 +15,124 @@ interface FormData {
 interface FormErrors {
   name?: string;
   email?: string;
+  phone?: string;
   message?: string;
 }
 
 const Contact = () => {
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
 
   const [formData, setFormData] = useState<FormData>({
     name: '',
     email: '',
+    phone: '',
     company: '',
     service: '',
     message: ''
   });
-  
+
   const [errors, setErrors] = useState<FormErrors>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
-  const [leadId, setLeadId] = useState<string | null>(null);
 
   const validateForm = (): boolean => {
     const newErrors: FormErrors = {};
-    
-    // Name validation
+
     if (!formData.name.trim()) {
       newErrors.name = 'Name is required';
     } else if (formData.name.trim().length < 2) {
       newErrors.name = 'Name must be at least 2 characters';
     }
-    
-    // Email validation
+
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!formData.email.trim()) {
       newErrors.email = 'Email is required';
     } else if (!emailRegex.test(formData.email)) {
       newErrors.email = 'Please enter a valid email address';
     }
-    
-    // Message validation
+
+    if (formData.phone.trim() && !/^\+?[\d\s\-().]{7,20}$/.test(formData.phone.trim())) {
+      newErrors.phone = 'Please enter a valid phone number';
+    }
+
     if (!formData.message.trim()) {
       newErrors.message = 'Message is required';
     } else if (formData.message.trim().length < 10) {
       newErrors.message = 'Message must be at least 10 characters';
     }
-    
+
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
 
-  const simulateApiCall = (): Promise<void> => {
-    return new Promise((resolve, reject) => {
-      setTimeout(() => {
-        // Simulate 90% success rate
-        if (Math.random() > 0.1) {
-          resolve();
-        } else {
-          reject(new Error('Network error. Please try again.'));
-        }
-      }, 2000);
-    });
-  };
+  const sendToN8N = async (contactData: Record<string, unknown>): Promise<void> => {
+    const webhookUrl = import.meta.env.VITE_N8N_CONTACT_WEBHOOK_URL;
+    if (!webhookUrl) return; // n8n step is optional; DB write is the source of truth
 
-  const sendToN8N = async (contactData: any): Promise<void> => {
-    const webhookUrl = 'https://app.n8n-tech.cloud/webhook/56144a26-b713-482c-9383-1ff3e562ae0a';
-    
     try {
       const response = await fetch(webhookUrl, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(contactData)
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(contactData),
       });
-
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
-
-      console.log('Contact lead sent to N8N successfully');
     } catch (error) {
+      // n8n is best-effort; don't break the user flow if it's down
       console.error('Error sending to N8N:', error);
-      // Don't throw error - we don't want to break user experience
     }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSubmitError(null);
-    
-    if (!validateForm()) {
-      return;
-    }
-    
+
+    if (!validateForm()) return;
+
     setIsSubmitting(true);
-    
-    // Prepare data for N8N
-    const baseContactData = {
-      full_name: formData.name,
-      email: formData.email,
-      company: formData.company || null,
-      service: formData.service || null,
-      message: formData.message,
-      source: 'contact_form',
-      created_at: new Date().toISOString(),
-      language: t('contact.phone') === 'Phone' ? 'en' : 'es' // Detect language
-    };
 
     try {
-      // 1. Save to database first
-      const { data: dbLead, error: dbError } = await supabase
-        .rpc('create_contact_lead', {
-          p_full_name: formData.name,
-          p_email: formData.email,
-          p_message: formData.message,
-          p_company: formData.company || null,
-          p_service: formData.service || null,
-          p_phone: formData.phone || null,
-          p_source: 'website_form',
-          p_referrer: null,
-          p_ip_address: null,
-          p_user_agent: navigator.userAgent
-        });
+      // Single source of truth: SECURITY DEFINER RPC creates the lead.
+      // The previous direct INSERT after this call duplicated every lead.
+      const { data: leadId, error: dbError } = await supabase.rpc('create_contact_lead', {
+        p_full_name: formData.name,
+        p_email: formData.email,
+        p_message: formData.message,
+        p_company: formData.company || null,
+        p_service: formData.service || null,
+        p_phone: formData.phone || null,
+        p_source: 'website_form',
+        p_referrer: document.referrer || null,
+        p_ip_address: null,
+        p_user_agent: navigator.userAgent,
+      });
 
       if (dbError) {
         console.error('Database error:', dbError);
-        setSubmitError(`Database error: ${dbError.message}`);
+        setSubmitError('Could not submit your message. Please try again.');
         setIsSubmitting(false);
         return;
-      } else {
-        console.log('Lead saved to database:', dbLead);
-        setLeadId(dbLead);
       }
 
-      // 2. Send to N8N (existing functionality)
-      const contactData = {
-        ...baseContactData,
-        lead_id: dbLead || 'unknown'
-      };
-
-      await sendToN8N(contactData);
-
-      // 3. Alternative database save method
-      const { data: dbLead2, error: dbError2 } = await supabase
-        .from('contact_leads')
-        .insert([{
-          full_name: formData.name,
-          email: formData.email,
-          message: formData.message,
-          company: formData.company || null,
-          service: formData.service || null,
-          phone: formData.phone || null,
-          source: 'website_form',
-          user_agent: navigator.userAgent,
-          status: 'new',
-          priority: formData.service && ['consulting', 'security'].includes(formData.service) ? 'high' : 'medium'
-        }])
-        .select()
-        .single();
-
-      if (dbError2) {
-        console.error('Alternative database error:', dbError2);
-      }
-
-      // Success
-      setIsSubmitted(true);
-      setFormData({
-        name: '',
-        email: '',
-        company: '',
-        service: '',
-        message: ''
+      void sendToN8N({
+        lead_id: leadId ?? 'unknown',
+        full_name: formData.name,
+        email: formData.email,
+        phone: formData.phone || null,
+        company: formData.company || null,
+        service: formData.service || null,
+        message: formData.message,
+        source: 'contact_form',
+        language,
+        created_at: new Date().toISOString(),
       });
-      
-      setTimeout(() => setIsSubmitted(false), 5000);
 
+      setIsSubmitted(true);
+      setFormData({ name: '', email: '', phone: '', company: '', service: '', message: '' });
+
+      setTimeout(() => setIsSubmitted(false), 5000);
     } catch (error) {
       console.error('Contact form error:', error);
       setSubmitError('Error processing your request. Please try again.');
@@ -363,6 +307,28 @@ const Contact = () => {
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div>
                       <label className="block text-sm font-medium text-slate-300 mb-2">
+                        {t('contact.phone')}
+                      </label>
+                      <input
+                        type="tel"
+                        name="phone"
+                        value={formData.phone}
+                        onChange={handleChange}
+                        autoComplete="tel"
+                        className={`w-full px-4 py-3 bg-gray-50 border rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 ${
+                          errors.phone ? 'border-red-500' : 'border-gray-200'
+                        }`}
+                        placeholder="+1 (555) 123-4567"
+                      />
+                      {errors.phone && (
+                        <p className="mt-1 text-sm text-red-400 flex items-center">
+                          <AlertCircle className="w-4 h-4 mr-1" />
+                          {errors.phone}
+                        </p>
+                      )}
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-slate-300 mb-2">
                         {t('contact.company')}
                       </label>
                       <input
@@ -374,26 +340,27 @@ const Contact = () => {
                         placeholder={t('contact.companyPlaceholder')}
                       />
                     </div>
-                    <div>
-                      <label className="block text-sm font-medium text-slate-300 mb-2">
-                        {t('contact.service')}
-                      </label>
-                      <select
-                        name="service"
-                        value={formData.service}
-                        onChange={handleChange}
-                        className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
-                      >
-                        <option value="">{t('contact.selectService')}</option>
-                        <option value="consulting">{t('services.consulting.title')}</option>
-                        <option value="security">{t('services.security.title')}</option>
-                        <option value="cloud">{t('services.cloud.title')}</option>
-                        <option value="development">{t('services.development.title')}</option>
-                        <option value="data">{t('services.data.title')}</option>
-                        <option value="automation">{t('services.automation.title')}</option>
-                        <option value="translations">{t('services.translations.title')}</option>
-                      </select>
-                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-slate-300 mb-2">
+                      {t('contact.service')}
+                    </label>
+                    <select
+                      name="service"
+                      value={formData.service}
+                      onChange={handleChange}
+                      className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
+                    >
+                      <option value="">{t('contact.selectService')}</option>
+                      <option value="consulting">{t('services.consulting.title')}</option>
+                      <option value="security">{t('services.security.title')}</option>
+                      <option value="cloud">{t('services.cloud.title')}</option>
+                      <option value="development">{t('services.development.title')}</option>
+                      <option value="data">{t('services.data.title')}</option>
+                      <option value="automation">{t('services.automation.title')}</option>
+                      <option value="translations">{t('services.translations.title')}</option>
+                    </select>
                   </div>
 
                   <div>

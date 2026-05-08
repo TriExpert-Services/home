@@ -1,10 +1,4 @@
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
-
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-  'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
-}
+import { corsHeadersFor, jsonResponse, requireAdminOrService } from '../_shared/auth.ts'
 
 interface EmailNotification {
   to: string;
@@ -20,22 +14,16 @@ interface SMSNotification {
 }
 
 Deno.serve(async (req) => {
-  // Handle CORS preflight requests
+  const corsHeaders = corsHeadersFor(req)
+
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders })
   }
 
+  const auth = await requireAdminOrService(req)
+  if (!auth.ok) return jsonResponse(auth.body, auth.status, corsHeaders)
+
   try {
-    const supabase = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
-      {
-        auth: {
-          autoRefreshToken: false,
-          persistSession: false
-        }
-      }
-    )
 
     const url = new URL(req.url)
     const path = url.pathname
