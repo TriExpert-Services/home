@@ -5,6 +5,7 @@ import {
 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { logger } from '../lib/logger';
+import { useToast } from '../contexts/ToastContext';
 
 interface ConfigData {
   host: string;
@@ -17,6 +18,7 @@ interface ConfigData {
 }
 
 const N8nConfiguration: React.FC = () => {
+  const toast = useToast();
   const [config, setConfig] = useState<ConfigData>({
     host: 'localhost',
     port: 5432,
@@ -68,6 +70,7 @@ const N8nConfiguration: React.FC = () => {
       }
     } catch (err) {
       logger.error('Error loading configuration:', err);
+      toast.error('Could not load N8N configuration');
     }
   };
 

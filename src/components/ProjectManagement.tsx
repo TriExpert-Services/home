@@ -137,7 +137,12 @@ const ProjectManagement: React.FC = () => {
 
   const updateProjectStatus = async (projectId: string, newStatus: string) => {
     try {
-      const updates: any = { 
+      const updates: {
+        status: string;
+        updated_at: string;
+        actual_delivery_date?: string;
+        progress_percentage?: number;
+      } = {
         status: newStatus,
         updated_at: new Date().toISOString()
       };

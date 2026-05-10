@@ -121,7 +121,7 @@ Deno.serve(async (req) => {
       const updateData = await req.json()
 
       // Add timestamps for status changes
-      const statusTimestamps: any = {}
+      const statusTimestamps: { contacted_at?: string; converted_at?: string } = {}
       if (updateData.status === 'contacted' && !updateData.contacted_at) {
         statusTimestamps.contacted_at = new Date().toISOString()
       }
@@ -153,7 +153,13 @@ Deno.serve(async (req) => {
       const id = path.split('/')[2]
       const { status, admin_notes } = await req.json()
 
-      const updateData: any = {
+      const updateData: {
+        status: string
+        updated_at: string
+        contacted_at?: string
+        converted_at?: string
+        admin_notes?: string
+      } = {
         status,
         updated_at: new Date().toISOString()
       }

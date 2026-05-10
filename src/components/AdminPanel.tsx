@@ -5,6 +5,7 @@ import { supabase } from '../lib/supabase';
 import { logger } from '../lib/logger';
 import { ErrorBoundary } from './ErrorBoundary';
 import { Pager } from './Pager';
+import { SkeletonRows } from './Skeleton';
 
 // Heavy admin sub-tabs — only fetched when their tab is opened.
 const DocumentManagement   = lazy(() => import('./DocumentManagement'));
@@ -670,10 +671,7 @@ const AdminPanel: React.FC = () => {
               </div>
 
               {isLoading ? (
-                <div className="text-center py-12">
-                  <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-white"></div>
-                  <p className="text-white mt-4">Loading...</p>
-                </div>
+                <SkeletonRows rows={6} rowClassName="h-20 w-full" />
               ) : selectedRequest ? (
                 <div>
                   <button
@@ -922,10 +920,7 @@ const AdminPanel: React.FC = () => {
               </div>
 
               {isLoading ? (
-                <div className="text-center py-12">
-                  <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-white"></div>
-                  <p className="text-white mt-4">Loading reviews...</p>
-                </div>
+                <SkeletonRows rows={6} rowClassName="h-32 w-full" />
               ) : (
                 <div className="space-y-6">
                   {reviews.map((review) => (
@@ -1107,10 +1102,7 @@ const AdminPanel: React.FC = () => {
               </div>
 
               {isLoading ? (
-                <div className="text-center py-12">
-                  <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-white"></div>
-                  <p className="text-white mt-4">Loading leads...</p>
-                </div>
+                <SkeletonRows rows={6} rowClassName="h-24 w-full" />
               ) : (
                 <div className="space-y-4">
                   {contactLeads.map((lead) => (

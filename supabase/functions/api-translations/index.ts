@@ -119,7 +119,12 @@ Deno.serve(async (req) => {
       const id = path.split('/')[2]
       const { status, translator_notes, delivery_date } = await req.json()
 
-      const updateData: any = {
+      const updateData: {
+        status: string
+        updated_at: string
+        translator_notes?: string
+        delivery_date?: string
+      } = {
         status,
         updated_at: new Date().toISOString()
       }

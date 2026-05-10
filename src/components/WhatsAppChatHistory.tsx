@@ -21,7 +21,7 @@ interface Message {
   created_at: string;
   message_type?: string;
   sender?: string;
-  metadata?: any;
+  metadata?: Record<string, unknown>;
 }
 
 interface Statistics {
