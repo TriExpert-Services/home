@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { MessageCircle, X, Send, User, Bot, Loader2 } from 'lucide-react';
 import { useLanguage } from '../contexts/LanguageContext';
 import { logger } from '../lib/logger';
+import { supabase } from '../lib/supabase';
 
 interface Message {
   id: string;
@@ -76,46 +77,30 @@ const Chatbot = () => {
     setIsLoading(true);
 
     try {
-      // Prepare data for N8N webhook
+      // Send through the chatbot-relay edge function instead of hitting the
+      // n8n webhook directly. The edge function adds origin allowlist,
+      // rate limiting, payload validation, and HMAC signing — none of which
+      // we can do safely from the public bundle.
       const requestData = {
         message: userMessage.text,
         session_id: sessionId,
         language: language,
-        timestamp: new Date().toISOString(),
         source: 'website_chat',
-        user_agent: navigator.userAgent,
-        page_url: window.location.href
+        page_url: window.location.href,
       };
 
-      logger.debug('Sending to N8N:', requestData);
+      logger.debug('Sending to chatbot-relay:', requestData);
 
-      const webhookUrl = import.meta.env.VITE_N8N_CHAT_WEBHOOK_URL;
-      const webhookToken = import.meta.env.VITE_N8N_WEBHOOK_TOKEN;
-      if (!webhookUrl) {
-        throw new Error('Chat webhook is not configured');
-      }
-
-      const headers: Record<string, string> = {
-        'Content-Type': 'application/json',
-      };
-      if (webhookToken) {
-        headers['X-Webhook-Token'] = webhookToken;
-      }
-
-      const response = await fetch(webhookUrl, {
-        method: 'POST',
-        headers,
-        body: JSON.stringify(requestData)
+      const { data, error } = await supabase.functions.invoke('chatbot-relay', {
+        body: requestData,
       });
 
-      logger.debug('Response status:', response.status);
-
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      if (error) {
+        throw new Error(error.message ?? 'Chat relay failed');
       }
 
-      const responseData = await response.text();
-      logger.debug('Raw N8N response:', responseData);
+      const responseData = typeof data === 'string' ? data : JSON.stringify(data);
+      logger.debug('Raw relay response:', responseData);
 
       let botResponseText = '';
 
