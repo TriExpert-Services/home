@@ -22,6 +22,7 @@ const ProjectManagement    = lazy(() => import('./ProjectManagement'));
 const BlogManagement       = lazy(() => import('./BlogManagement'));
 const WhatsAppChatHistory  = lazy(() => import('./WhatsAppChatHistory'));
 const N8nConfiguration     = lazy(() => import('./N8nConfiguration'));
+const ReportsTab           = lazy(() => import('./ReportsTab'));
 
 const TabLoader = () => (
   <div className="flex items-center justify-center py-24">
@@ -121,31 +122,44 @@ const AdminPanel: React.FC = () => {
     conversion_rate: 0
   });
 
-  // Counts shown on the overview cards — pulled separately from the
-  // paginated list state so the numbers reflect the whole table, not
-  // whatever 50-row page happens to be loaded.
+  // KPI snapshot for the Overview tab — one RPC roundtrip instead of
+  // 4+ count queries. Numbers reflect the whole tables, independent of
+  // the paginated list state.
+  interface OverviewKpis {
+    total_translations: number;
+    completed_translations: number;
+    pending_translations: number;
+    total_revenue: number;
+    this_month_revenue: number;
+    avg_translation_cost: number;
+    total_leads: number;
+    converted_leads: number;
+    conversion_rate_pct: number;
+    total_reviews: number;
+    pending_review_approvals: number;
+    avg_rating: number;
+    active_projects: number;
+  }
+  const [kpis, setKpis] = useState<OverviewKpis | null>(null);
   const [overviewCompleted, setOverviewCompleted] = useState(0);
 
   const loadOverviewStats = async () => {
     setIsLoading(true);
     try {
-      const [translationsRes, completedRes] = await Promise.all([
-        supabase
-          .from('translation_requests')
-          .select('id', { count: 'exact', head: true }),
-        supabase
-          .from('translation_requests')
-          .select('id', { count: 'exact', head: true })
-          .eq('status', 'completed'),
-      ]);
-
-      if (!translationsRes.error) setTranslationsTotal(translationsRes.count ?? 0);
-      if (!completedRes.error) setOverviewCompleted(completedRes.count ?? 0);
-
-      // Reuse the existing review/lead loaders to populate their stats blocks.
+      const { data, error } = await supabase.rpc('get_overview_kpis');
+      if (error) throw error;
+      const row = (data as OverviewKpis[] | null)?.[0] ?? null;
+      if (row) {
+        setKpis(row);
+        setTranslationsTotal(Number(row.total_translations ?? 0));
+        setOverviewCompleted(Number(row.completed_translations ?? 0));
+      }
+      // Reuse the lead/review loaders so their existing stats objects
+      // (sidebar badges, secondary cards) stay populated.
       await Promise.all([loadReviews(), loadContactLeads()]);
     } catch (error) {
       logger.error('Error loading overview stats:', error);
+      toast.error('Could not load dashboard KPIs');
     } finally {
       setIsLoading(false);
     }
@@ -558,6 +572,18 @@ const AdminPanel: React.FC = () => {
               </button>
 
               <button
+                onClick={() => setActiveTab('reports')}
+                className={`w-full flex items-center space-x-3 px-4 py-3 rounded-xl transition-all ${
+                  activeTab === 'reports'
+                    ? 'bg-white/20 text-white'
+                    : 'text-white/70 hover:bg-white/10 hover:text-white'
+                }`}
+              >
+                <BarChart3 className="w-5 h-5" />
+                <span>Reports</span>
+              </button>
+
+              <button
                 onClick={() => setActiveTab('whatsapp')}
                 className={`w-full flex items-center space-x-3 px-4 py-3 rounded-xl transition-all ${
                   activeTab === 'whatsapp'
@@ -679,6 +705,61 @@ const AdminPanel: React.FC = () => {
                   <div className="text-white/60 text-sm">Contact Leads</div>
                 </div>
               </div>
+
+              {/* Commercial / customer KPIs (sourced from get_overview_kpis RPC) */}
+              {kpis && (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+                  <div className="bg-white/10 backdrop-blur-xl rounded-2xl p-6 border border-white/20">
+                    <div className="flex items-center justify-between mb-4">
+                      <div className="w-12 h-12 bg-emerald-500/20 rounded-xl flex items-center justify-center">
+                        <DollarSign className="w-6 h-6 text-emerald-400" />
+                      </div>
+                    </div>
+                    <div className="text-2xl font-bold text-white mb-1">
+                      ${Number(kpis.total_revenue).toLocaleString(undefined, { maximumFractionDigits: 0 })}
+                    </div>
+                    <div className="text-white/60 text-sm">Total Revenue</div>
+                  </div>
+
+                  <div className="bg-white/10 backdrop-blur-xl rounded-2xl p-6 border border-white/20">
+                    <div className="flex items-center justify-between mb-4">
+                      <div className="w-12 h-12 bg-blue-500/20 rounded-xl flex items-center justify-center">
+                        <TrendingUp className="w-6 h-6 text-blue-400" />
+                      </div>
+                    </div>
+                    <div className="text-2xl font-bold text-white mb-1">
+                      ${Number(kpis.this_month_revenue).toLocaleString(undefined, { maximumFractionDigits: 0 })}
+                    </div>
+                    <div className="text-white/60 text-sm">This month</div>
+                  </div>
+
+                  <div className="bg-white/10 backdrop-blur-xl rounded-2xl p-6 border border-white/20">
+                    <div className="flex items-center justify-between mb-4">
+                      <div className="w-12 h-12 bg-orange-500/20 rounded-xl flex items-center justify-center">
+                        <Target className="w-6 h-6 text-orange-400" />
+                      </div>
+                    </div>
+                    <div className="text-2xl font-bold text-white mb-1">
+                      {Number(kpis.conversion_rate_pct).toFixed(1)}%
+                    </div>
+                    <div className="text-white/60 text-sm">Lead conversion</div>
+                  </div>
+
+                  <div className="bg-white/10 backdrop-blur-xl rounded-2xl p-6 border border-white/20">
+                    <div className="flex items-center justify-between mb-4">
+                      <div className="w-12 h-12 bg-yellow-500/20 rounded-xl flex items-center justify-center">
+                        <Star className="w-6 h-6 text-yellow-400" />
+                      </div>
+                    </div>
+                    <div className="text-2xl font-bold text-white mb-1">
+                      {Number(kpis.avg_rating).toFixed(1)}/5
+                    </div>
+                    <div className="text-white/60 text-sm">
+                      Avg rating · {kpis.pending_review_approvals} pending approvals
+                    </div>
+                  </div>
+                </div>
+              )}
 
               {/* Quick Actions */}
               <div className="bg-white/10 backdrop-blur-xl rounded-2xl p-6 border border-white/20">
@@ -1311,6 +1392,9 @@ const AdminPanel: React.FC = () => {
               />
             </div>
           )}
+
+          {/* Reports Tab */}
+          {activeTab === 'reports' && <ReportsTab />}
 
           {/* WhatsApp Agent Tab */}
           {activeTab === 'whatsapp' && <WhatsAppChatHistory />}
