@@ -6,12 +6,24 @@
     <meta name="theme-color" content="#0f172a" />
     <link rel="icon" type="image/svg+xml" href="/vite.svg" />
 
+    <!-- Performance: open the connection to Supabase before the JS bundle parses,
+         saving ~100 ms on the first API call (Hero stats, Testimonials, etc.). -->
+    <link rel="preconnect" href="https://supabase.triexpertservice.com" crossorigin />
+    <link rel="dns-prefetch" href="https://supabase.triexpertservice.com" />
+
     <title>TriExpert Services — Professional Technology Solutions</title>
     <meta
       name="description"
       content="TriExpert Services delivers managed IT, cloud infrastructure, certified translations, and bespoke automation for businesses across the US and Latin America."
     />
     <link rel="canonical" href="https://triexpertservice.com/" />
+
+    <!-- Hreflang: declare both languages so Google can return the right one in
+         each market. The actual language switch is still client-side (URL ?lang=es),
+         but with the alternate links + Spanish-aware sitemap, ES queries can rank. -->
+    <link rel="alternate" hreflang="en" href="https://triexpertservice.com/" />
+    <link rel="alternate" hreflang="es" href="https://triexpertservice.com/?lang=es" />
+    <link rel="alternate" hreflang="x-default" href="https://triexpertservice.com/" />
 
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content="TriExpert Services" />
@@ -32,6 +44,53 @@
       content="Managed IT, cloud, certified translations, and automation built around your business."
     />
     <meta name="twitter:image" content="https://triexpertservice.com/og-cover.png" />
+
+    <!-- Structured data for rich snippets in search results. The Organization
+         block lets Google show our logo + social links; the Service block lets
+         translation queries surface us in service-specific cards. -->
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@graph": [
+          {
+            "@type": "Organization",
+            "@id": "https://triexpertservice.com/#organization",
+            "name": "TriExpert Services",
+            "url": "https://triexpertservice.com/",
+            "logo": "https://triexpertservice.com/og-cover.png",
+            "description": "Managed IT, cloud infrastructure, certified document translations, and bespoke automation for businesses across the US and Latin America.",
+            "areaServed": ["US", "ES", "MX", "AR", "CO", "VE", "CL", "PE"],
+            "sameAs": []
+          },
+          {
+            "@type": "WebSite",
+            "@id": "https://triexpertservice.com/#website",
+            "url": "https://triexpertservice.com/",
+            "name": "TriExpert Services",
+            "publisher": { "@id": "https://triexpertservice.com/#organization" },
+            "inLanguage": ["en", "es"]
+          },
+          {
+            "@type": "Service",
+            "name": "Certified Document Translations",
+            "provider": { "@id": "https://triexpertservice.com/#organization" },
+            "serviceType": "Translation",
+            "areaServed": ["US", "ES", "MX", "AR", "CO", "VE", "CL", "PE"],
+            "offers": {
+              "@type": "Offer",
+              "priceCurrency": "USD",
+              "url": "https://triexpertservice.com/translate"
+            }
+          },
+          {
+            "@type": "Service",
+            "name": "Managed IT and Cloud Infrastructure",
+            "provider": { "@id": "https://triexpertservice.com/#organization" },
+            "serviceType": "Information Technology Services"
+          }
+        ]
+      }
+    </script>
   </head>
   <body>
     <div id="root"></div>

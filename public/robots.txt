@@ -1,0 +1,9 @@
+User-agent: *
+Allow: /
+
+# Admin and verification pages don't add value to search results.
+Disallow: /admin
+Disallow: /admin/
+Disallow: /verify
+
+Sitemap: https://triexpertservice.com/sitemap.xml

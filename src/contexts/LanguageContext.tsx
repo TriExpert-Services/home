@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, ReactNode } from 'react';
+import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 
 export type Language = 'en' | 'es';
 
@@ -395,8 +395,44 @@ interface LanguageProviderProps {
   children: ReactNode;
 }
 
+// Resolve the initial language from (in order): ?lang= query string,
+// localStorage, browser-preferred language, default 'en'. The query string
+// takes precedence so a user can land on /?lang=es and immediately see ES.
+function resolveInitialLanguage(): Language {
+  if (typeof window === 'undefined') return 'en';
+  try {
+    const params = new URLSearchParams(window.location.search);
+    const fromUrl = params.get('lang');
+    if (fromUrl === 'es' || fromUrl === 'en') return fromUrl;
+
+    const saved = localStorage.getItem('triexpert:v1:language');
+    if (saved === 'es' || saved === 'en') return saved;
+
+    const browser = (navigator.language || 'en').toLowerCase();
+    if (browser.startsWith('es')) return 'es';
+  } catch {
+    // localStorage / URL APIs may be unavailable in some sandboxes; default below.
+  }
+  return 'en';
+}
+
 export const LanguageProvider: React.FC<LanguageProviderProps> = ({ children }) => {
-  const [language, setLanguage] = useState<Language>('en');
+  const [language, setLanguage] = useState<Language>(resolveInitialLanguage);
+
+  // Keep the <html lang> attribute in sync with the active language so
+  // search engines, screen readers and browser translation tools all see
+  // the right value. Persist the choice so a returning visitor doesn't
+  // have to re-pick it.
+  useEffect(() => {
+    if (typeof document !== 'undefined') {
+      document.documentElement.setAttribute('lang', language);
+    }
+    try {
+      localStorage.setItem('triexpert:v1:language', language);
+    } catch {
+      /* ignore quota/private-mode errors */
+    }
+  }, [language]);
 
   const t = (key: string): string => {
     return translations[language][key] || key;
