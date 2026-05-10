@@ -121,9 +121,41 @@ const AdminPanel: React.FC = () => {
     conversion_rate: 0
   });
 
-  // Load data when component mounts, tab changes, or page changes
+  // Counts shown on the overview cards — pulled separately from the
+  // paginated list state so the numbers reflect the whole table, not
+  // whatever 50-row page happens to be loaded.
+  const [overviewCompleted, setOverviewCompleted] = useState(0);
+
+  const loadOverviewStats = async () => {
+    setIsLoading(true);
+    try {
+      const [translationsRes, completedRes] = await Promise.all([
+        supabase
+          .from('translation_requests')
+          .select('id', { count: 'exact', head: true }),
+        supabase
+          .from('translation_requests')
+          .select('id', { count: 'exact', head: true })
+          .eq('status', 'completed'),
+      ]);
+
+      if (!translationsRes.error) setTranslationsTotal(translationsRes.count ?? 0);
+      if (!completedRes.error) setOverviewCompleted(completedRes.count ?? 0);
+
+      // Reuse the existing review/lead loaders to populate their stats blocks.
+      await Promise.all([loadReviews(), loadContactLeads()]);
+    } catch (error) {
+      logger.error('Error loading overview stats:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Load data when component mounts, tab changes, or page changes.
   useEffect(() => {
-    if (activeTab === 'translations') {
+    if (activeTab === 'overview') {
+      loadOverviewStats();
+    } else if (activeTab === 'translations') {
       loadTranslationRequests();
     } else if (activeTab === 'reviews') {
       loadReviews();
@@ -467,7 +499,7 @@ const AdminPanel: React.FC = () => {
                 <FileText className="w-5 h-5" />
                 <span>Translations</span>
                 <span className="ml-auto bg-blue-500 text-white text-xs px-2 py-1 rounded-full">
-                  {translationRequests.length}
+                  {translationsTotal}
                 </span>
               </button>
 
@@ -606,7 +638,7 @@ const AdminPanel: React.FC = () => {
                     </div>
                   </div>
                   <div className="text-2xl font-bold text-white mb-1">
-                    {translationRequests.length}
+                    {translationsTotal}
                   </div>
                   <div className="text-white/60 text-sm">Total Translations</div>
                 </div>
@@ -618,7 +650,7 @@ const AdminPanel: React.FC = () => {
                     </div>
                   </div>
                   <div className="text-2xl font-bold text-white mb-1">
-                    {translationRequests.filter(r => r.status === 'completed').length}
+                    {overviewCompleted}
                   </div>
                   <div className="text-white/60 text-sm">Completed</div>
                 </div>
