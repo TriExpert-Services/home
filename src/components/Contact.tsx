@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
-import { Phone, Mail, MapPin, Clock, Send, CheckCircle, AlertCircle, Loader2 } from 'lucide-react';
+import { Phone, Mail, MapPin, Clock, Send, CheckCircle, AlertCircle } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useLanguage } from '../contexts/LanguageContext';
 import { logger } from '../lib/logger';
+import { Button, Card, Input, Textarea } from './primitives';
 
 interface FormData {
   name: string;
@@ -29,7 +30,7 @@ const Contact = () => {
     phone: '',
     company: '',
     service: '',
-    message: ''
+    message: '',
   });
 
   const [errors, setErrors] = useState<FormErrors>({});
@@ -99,8 +100,6 @@ const Contact = () => {
     setIsSubmitting(true);
 
     try {
-      // Single source of truth: SECURITY DEFINER RPC creates the lead.
-      // The previous direct INSERT after this call duplicated every lead.
       const { data: leadId, error: dbError } = await supabase.rpc('create_contact_lead', {
         p_full_name: formData.name,
         p_email: formData.email,
@@ -146,68 +145,49 @@ const Contact = () => {
     }
   };
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
+  const handleChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>,
+  ) => {
     const { name, value } = e.target;
-    setFormData({
-      ...formData,
-      [name]: value
-    });
-    
-    // Clear error when user starts typing
+    setFormData((prev) => ({ ...prev, [name]: value }));
+
     if (errors[name as keyof FormErrors]) {
-      setErrors({
-        ...errors,
-        [name]: undefined
-      });
+      setErrors((prev) => ({ ...prev, [name]: undefined }));
     }
-    
-    // Clear submit error
-    if (submitError) {
-      setSubmitError(null);
-    }
-  };
 
-  const handlePhoneCall = () => {
-    window.open('tel:+18137108860', '_self');
-  };
-
-  const handleEmailClick = () => {
-    window.open('mailto:support@triexpertservice.com', '_self');
-  };
-
-  const handleLocationClick = () => {
-    window.open('https://maps.google.com/?q=2800+E+113th+Ave,+Tampa,+FL+33612', '_blank');
+    if (submitError) setSubmitError(null);
   };
 
   const contactInfo = [
     {
       icon: <Phone className="w-6 h-6" />,
       title: t('contact.phone'),
-      details: ["+1 (813) 710-8860", t('contact.phoneAvailable')],
-      color: "from-blue-500 to-blue-600",
-      action: handlePhoneCall
+      details: ['+1 (813) 710-8860', t('contact.phoneAvailable')],
+      color: 'from-blue-500 to-blue-600',
+      action: () => window.open('tel:+18137108860', '_self'),
     },
     {
       icon: <Mail className="w-6 h-6" />,
       title: t('contact.email'),
-      details: ["support@triexpertservice.com", t('contact.emailSupport')],
-      color: "from-green-500 to-green-600",
-      action: handleEmailClick
+      details: ['support@triexpertservice.com', t('contact.emailSupport')],
+      color: 'from-green-500 to-green-600',
+      action: () => window.open('mailto:support@triexpertservice.com', '_self'),
     },
     {
       icon: <MapPin className="w-6 h-6" />,
       title: t('contact.location'),
-      details: ["2800 E 113th Ave, Apt 120", "Tampa, Florida 33612"],
-      color: "from-purple-500 to-purple-600",
-      action: handleLocationClick
+      details: ['2800 E 113th Ave, Apt 120', 'Tampa, Florida 33612'],
+      color: 'from-purple-500 to-purple-600',
+      action: () =>
+        window.open('https://maps.google.com/?q=2800+E+113th+Ave,+Tampa,+FL+33612', '_blank'),
     },
     {
       icon: <Clock className="w-6 h-6" />,
       title: t('contact.hours'),
       details: [t('contact.hoursWeek'), t('contact.hoursSat')],
-      color: "from-orange-500 to-orange-600",
-      action: undefined
-    }
+      color: 'from-orange-500 to-orange-600',
+      action: undefined,
+    },
   ];
 
   return (
@@ -220,40 +200,49 @@ const Contact = () => {
           </div>
           <h2 className="text-4xl md:text-5xl font-bold text-white mb-4">
             {t('contact.title')}
-            <span className="bg-gradient-to-r from-blue-400 to-indigo-400 bg-clip-text text-transparent"> {t('contact.titleAccent')}</span>
+            <span className="bg-gradient-to-r from-brand-400 to-accent-500 bg-clip-text text-transparent">
+              {' '}
+              {t('contact.titleAccent')}
+            </span>
           </h2>
-          <p className="text-xl text-slate-300 max-w-3xl mx-auto">
-            {t('contact.description')}
-          </p>
+          <p className="text-xl text-slate-300 max-w-3xl mx-auto">{t('contact.description')}</p>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-12">
-          {/* Contact Info */}
+          {/* Contact info cards */}
           <div className="space-y-6">
             {contactInfo.map((info, index) => (
-              <div 
-                key={index} 
+              <button
+                type="button"
+                key={index}
                 onClick={info.action}
-                className={`bg-slate-700/50 backdrop-blur-sm rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 border border-slate-600 ${
-                  info.action ? 'cursor-pointer hover:border-blue-500/50' : ''
+                disabled={!info.action}
+                className={`w-full text-left bg-slate-700/50 backdrop-blur-sm rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all duration-300 border border-slate-600 ${
+                  info.action
+                    ? 'cursor-pointer hover:-translate-y-1 hover:border-brand-500/50'
+                    : 'cursor-default'
                 }`}
               >
-                <div className={`inline-flex items-center justify-center w-12 h-12 bg-gradient-to-r ${info.color} rounded-xl text-white mb-4`}>
+                <div
+                  className={`inline-flex items-center justify-center w-12 h-12 bg-gradient-to-r ${info.color} rounded-xl text-white mb-4`}
+                >
                   {info.icon}
                 </div>
                 <h3 className="font-bold text-white mb-2">{info.title}</h3>
-                {info.details.map((detail, detailIndex) => (
-                  <p key={detailIndex} className="text-slate-300 text-sm mb-1">{detail}</p>
+                {info.details.map((detail, i) => (
+                  <p key={i} className="text-slate-300 text-sm mb-1">
+                    {detail}
+                  </p>
                 ))}
-              </div>
+              </button>
             ))}
           </div>
 
-          {/* Contact Form */}
+          {/* Contact form */}
           <div className="lg:col-span-2">
-            <div className="bg-slate-800/50 backdrop-blur-sm rounded-2xl p-8 shadow-xl border border-slate-700">
+            <Card padding="lg">
               <h3 className="text-2xl font-bold text-white mb-6">{t('contact.sendMessage')}</h3>
-              
+
               {isSubmitted ? (
                 <div className="text-center py-12">
                   <CheckCircle className="w-16 h-16 text-green-500 mx-auto mb-4" />
@@ -261,167 +250,123 @@ const Contact = () => {
                   <p className="text-slate-300">{t('contact.messageResponse')}</p>
                 </div>
               ) : (
-                <form onSubmit={handleSubmit} className="space-y-6">
+                <form onSubmit={handleSubmit} className="space-y-6" noValidate>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div>
-                      <label className="block text-sm font-medium text-slate-300 mb-2">
-                        {t('contact.fullName')} *
-                      </label>
-                      <input
-                        type="text"
-                        name="name"
-                        value={formData.name}
-                        onChange={handleChange}
-                        required
-                        className={`w-full px-4 py-3 bg-gray-50 border rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 ${
-                          errors.name ? 'border-red-500' : 'border-gray-200'
-                        }`}
-                        placeholder={t('contact.namePlaceholder')}
-                      />
-                      {errors.name && (
-                        <p className="mt-1 text-sm text-red-400 flex items-center">
-                          <AlertCircle className="w-4 h-4 mr-1" />
-                          {errors.name}
-                        </p>
-                      )}
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-slate-300 mb-2">
-                        Email *
-                      </label>
-                      <input
-                        type="email"
-                        name="email"
-                        value={formData.email}
-                        onChange={handleChange}
-                        required
-                        className={`w-full px-4 py-3 bg-gray-50 border rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 ${
-                          errors.email ? 'border-red-500' : 'border-gray-200'
-                        }`}
-                        placeholder={t('contact.emailPlaceholder')}
-                      />
-                      {errors.email && (
-                        <p className="mt-1 text-sm text-red-400 flex items-center">
-                          <AlertCircle className="w-4 h-4 mr-1" />
-                          {errors.email}
-                        </p>
-                      )}
-                    </div>
+                    <Input
+                      name="name"
+                      label={`${t('contact.fullName')} *`}
+                      value={formData.name}
+                      onChange={handleChange}
+                      required
+                      autoComplete="name"
+                      placeholder={t('contact.namePlaceholder')}
+                      error={errors.name}
+                    />
+                    <Input
+                      name="email"
+                      type="email"
+                      label="Email *"
+                      value={formData.email}
+                      onChange={handleChange}
+                      required
+                      autoComplete="email"
+                      placeholder={t('contact.emailPlaceholder')}
+                      error={errors.email}
+                    />
                   </div>
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div>
-                      <label className="block text-sm font-medium text-slate-300 mb-2">
-                        {t('contact.phone')}
-                      </label>
-                      <input
-                        type="tel"
-                        name="phone"
-                        value={formData.phone}
-                        onChange={handleChange}
-                        autoComplete="tel"
-                        className={`w-full px-4 py-3 bg-gray-50 border rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 ${
-                          errors.phone ? 'border-red-500' : 'border-gray-200'
-                        }`}
-                        placeholder="+1 (555) 123-4567"
-                      />
-                      {errors.phone && (
-                        <p className="mt-1 text-sm text-red-400 flex items-center">
-                          <AlertCircle className="w-4 h-4 mr-1" />
-                          {errors.phone}
-                        </p>
-                      )}
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-slate-300 mb-2">
-                        {t('contact.company')}
-                      </label>
-                      <input
-                        type="text"
-                        name="company"
-                        value={formData.company}
-                        onChange={handleChange}
-                        className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
-                        placeholder={t('contact.companyPlaceholder')}
-                      />
-                    </div>
+                    <Input
+                      name="phone"
+                      type="tel"
+                      label={t('contact.phone')}
+                      value={formData.phone}
+                      onChange={handleChange}
+                      autoComplete="tel"
+                      placeholder="+1 (555) 123-4567"
+                      error={errors.phone}
+                    />
+                    <Input
+                      name="company"
+                      label={t('contact.company')}
+                      value={formData.company}
+                      onChange={handleChange}
+                      autoComplete="organization"
+                      placeholder={t('contact.companyPlaceholder')}
+                    />
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-slate-300 mb-2">
+                    <label
+                      htmlFor="service"
+                      className="block text-sm font-medium text-white mb-2"
+                    >
                       {t('contact.service')}
                     </label>
                     <select
+                      id="service"
                       name="service"
                       value={formData.service}
                       onChange={handleChange}
-                      className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
+                      className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-xl text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-400 focus-visible:border-transparent transition-colors"
                     >
-                      <option value="">{t('contact.selectService')}</option>
-                      <option value="consulting">{t('services.consulting.title')}</option>
-                      <option value="security">{t('services.security.title')}</option>
-                      <option value="cloud">{t('services.cloud.title')}</option>
-                      <option value="development">{t('services.development.title')}</option>
-                      <option value="data">{t('services.data.title')}</option>
-                      <option value="automation">{t('services.automation.title')}</option>
-                      <option value="translations">{t('services.translations.title')}</option>
+                      <option value="" className="bg-slate-800">
+                        {t('contact.selectService')}
+                      </option>
+                      <option value="consulting" className="bg-slate-800">
+                        {t('services.consulting.title')}
+                      </option>
+                      <option value="security" className="bg-slate-800">
+                        {t('services.security.title')}
+                      </option>
+                      <option value="cloud" className="bg-slate-800">
+                        {t('services.cloud.title')}
+                      </option>
+                      <option value="development" className="bg-slate-800">
+                        {t('services.development.title')}
+                      </option>
+                      <option value="data" className="bg-slate-800">
+                        {t('services.data.title')}
+                      </option>
+                      <option value="automation" className="bg-slate-800">
+                        {t('services.automation.title')}
+                      </option>
+                      <option value="translations" className="bg-slate-800">
+                        {t('services.translations.title')}
+                      </option>
                     </select>
                   </div>
 
-                  <div>
-                    <label className="block text-sm font-medium text-slate-300 mb-2">
-                      {t('contact.message')} *
-                    </label>
-                    <textarea
-                      name="message"
-                      value={formData.message}
-                      onChange={handleChange}
-                      required
-                      rows={5}
-                      className={`w-full px-4 py-3 bg-gray-50 border rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 resize-none ${
-                        errors.message ? 'border-red-500' : 'border-gray-200'
-                      }`}
-                      placeholder={t('contact.messagePlaceholder')}
-                    ></textarea>
-                    {errors.message && (
-                      <p className="mt-1 text-sm text-red-400 flex items-center">
-                        <AlertCircle className="w-4 h-4 mr-1" />
-                        {errors.message}
-                      </p>
-                    )}
-                  </div>
+                  <Textarea
+                    name="message"
+                    label={`${t('contact.message')} *`}
+                    value={formData.message}
+                    onChange={handleChange}
+                    required
+                    rows={5}
+                    placeholder={t('contact.messagePlaceholder')}
+                    error={errors.message}
+                  />
 
                   {submitError && (
                     <div className="bg-red-500/10 border border-red-500/20 rounded-xl p-4 text-red-400 flex items-center">
                       <AlertCircle className="w-5 h-5 mr-3 flex-shrink-0" />
-                      {submitError}
+                      <span className="text-sm">{submitError}</span>
                     </div>
                   )}
 
-                  <button
+                  <Button
                     type="submit"
-                    disabled={isSubmitting}
-                    className={`w-full py-4 px-6 rounded-xl font-semibold transition-all duration-300 shadow-lg flex items-center justify-center space-x-2 ${
-                      isSubmitting 
-                        ? 'bg-gray-600 cursor-not-allowed' 
-                        : 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white hover:from-blue-700 hover:to-indigo-700 transform hover:scale-105'
-                    }`}
+                    size="lg"
+                    fullWidth
+                    loading={isSubmitting}
+                    leftIcon={!isSubmitting && <Send className="w-5 h-5" />}
                   >
-                    {isSubmitting ? (
-                      <>
-                        <Loader2 className="w-5 h-5 animate-spin" />
-                        <span>Sending...</span>
-                      </>
-                    ) : (
-                      <>
-                        <Send className="w-5 h-5" />
-                        <span>{t('contact.send')}</span>
-                      </>
-                    )}
-                  </button>
+                    {isSubmitting ? 'Sending…' : t('contact.send')}
+                  </Button>
                 </form>
               )}
-            </div>
+            </Card>
           </div>
         </div>
       </div>

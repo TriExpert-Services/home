@@ -3,6 +3,7 @@ import { ArrowRight, Star, Users, Award, Play, MessageSquare } from 'lucide-reac
 import { useLanguage } from '../contexts/LanguageContext';
 import { supabase } from '../lib/supabase';
 import { logger } from '../lib/logger';
+import { Button } from './primitives';
 
 const Hero = () => {
   const { t } = useLanguage();
@@ -123,20 +124,21 @@ const Hero = () => {
 
           {/* CTA Buttons */}
           <div className="flex flex-col sm:flex-row gap-4 justify-center mb-12">
-            <button 
+            <Button
+              size="lg"
               onClick={scrollToContact}
-              className="group bg-gradient-to-r from-blue-600 to-indigo-600 text-white px-8 py-4 rounded-xl font-semibold text-lg hover:from-blue-700 hover:to-indigo-700 transform hover:scale-105 transition-all duration-300 shadow-2xl flex items-center justify-center space-x-2"
+              rightIcon={<ArrowRight className="w-5 h-5" />}
             >
-              <span>{t('hero.getStarted')}</span>
-              <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
-            </button>
-            <button 
+              {t('hero.getStarted')}
+            </Button>
+            <Button
+              variant="secondary"
+              size="lg"
               onClick={scrollToServices}
-              className="group bg-white/10 backdrop-blur-sm text-white px-8 py-4 rounded-xl font-semibold text-lg hover:bg-white/20 transition-all duration-300 border border-white/20 flex items-center justify-center space-x-2"
+              leftIcon={<Play className="w-5 h-5" />}
             >
-              <Play className="w-5 h-5 group-hover:scale-110 transition-transform" />
               {t('hero.learnMore')}
-            </button>
+            </Button>
           </div>
 
           {/* Stats */}
