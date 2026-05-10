@@ -36,8 +36,10 @@ FROM nginx:alpine
 COPY --from=build /app/dist /usr/share/nginx/html
 COPY nginx.conf /etc/nginx/nginx.conf
 
-# Healthcheck uses wget (already in nginx:alpine via busybox) instead of curl.
-RUN printf '#!/bin/sh\nwget -q -O /dev/null http://localhost/health || exit 1\n' > /health.sh \
+# Healthcheck uses wget (already in nginx:alpine via busybox) and pins to
+# 127.0.0.1 — `localhost` inside the container resolves to ::1 first, but
+# nginx only binds IPv4, so the IPv6 attempt gives Connection refused.
+RUN printf '#!/bin/sh\nwget -q -O /dev/null http://127.0.0.1/health || exit 1\n' > /health.sh \
     && chmod +x /health.sh
 
 EXPOSE 80
