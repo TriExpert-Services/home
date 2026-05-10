@@ -23,6 +23,14 @@ const Chatbot = () => {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
+  // Cap the in-memory transcript so a long-running tab doesn't grow unbounded.
+  const MAX_MESSAGES = 50;
+  const appendMessage = (msg: Message) =>
+    setMessages((prev) => {
+      const next = [...prev, msg];
+      return next.length > MAX_MESSAGES ? next.slice(next.length - MAX_MESSAGES) : next;
+    });
+
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
@@ -63,7 +71,7 @@ const Chatbot = () => {
       timestamp: new Date()
     };
 
-    setMessages(prev => [...prev, userMessage]);
+    appendMessage(userMessage);
     setInputValue('');
     setIsLoading(true);
 
@@ -146,7 +154,7 @@ const Chatbot = () => {
         timestamp: new Date()
       };
 
-      setMessages(prev => [...prev, botMessage]);
+      appendMessage(botMessage);
 
     } catch (error) {
       logger.error('Error sending message:', error);
@@ -160,7 +168,7 @@ const Chatbot = () => {
         timestamp: new Date()
       };
 
-      setMessages(prev => [...prev, errorMessage]);
+      appendMessage(errorMessage);
     } finally {
       setIsLoading(false);
     }

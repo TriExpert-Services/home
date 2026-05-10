@@ -186,7 +186,7 @@ const TranslationForm = ({ onBack }: { onBack: () => void }) => {
     }
   };
 
-  const sendToN8N = async (requestData: any) => {
+  const sendToN8N = async (requestData: Record<string, unknown>): Promise<unknown> => {
     const webhookUrl = import.meta.env.VITE_N8N_WEBHOOK_URL;
     
     if (!webhookUrl) {
@@ -209,7 +209,7 @@ const TranslationForm = ({ onBack }: { onBack: () => void }) => {
     return responseData;
   };
 
-  const waitForPaymentLink = async (requestData: any): Promise<string | null> => {
+  const waitForPaymentLink = async (requestData: Record<string, unknown>): Promise<string | null> => {
     return new Promise((resolve) => {
       const timeout = setTimeout(() => {
         resolve(null); // Timeout after 20 seconds
