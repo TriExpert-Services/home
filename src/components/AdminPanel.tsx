@@ -6,6 +6,15 @@ import { logger } from '../lib/logger';
 import { ErrorBoundary } from './ErrorBoundary';
 import { Pager } from './Pager';
 import { SkeletonRows } from './Skeleton';
+import { useToast } from '../contexts/ToastContext';
+
+// Whitelisted status values — match the CHECK constraints in
+// translation_requests / contact_leads. Anything else is rejected
+// client-side to prevent silent server-side failures.
+const TRANSLATION_STATUSES = ['pending', 'in_progress', 'completed', 'cancelled'] as const;
+const LEAD_STATUSES = ['new', 'contacted', 'qualified', 'converted', 'rejected'] as const;
+type TranslationStatus = typeof TRANSLATION_STATUSES[number];
+type LeadStatus = typeof LEAD_STATUSES[number];
 
 // Heavy admin sub-tabs — only fetched when their tab is opened.
 const DocumentManagement   = lazy(() => import('./DocumentManagement'));
@@ -79,7 +88,11 @@ const PAGE_SIZE = 50;
 
 const AdminPanel: React.FC = () => {
   const { user, logout } = useAdmin();
+  const toast = useToast();
   const [activeTab, setActiveTab] = useState('overview');
+  // Tracks IDs currently mid-update so the UI can disable controls
+  // and prevent duplicate clicks against the same row.
+  const [pendingUpdates, setPendingUpdates] = useState<Set<string>>(new Set());
   const [translationRequests, setTranslationRequests] = useState<TranslationRequest[]>([]);
   const [translationsPage, setTranslationsPage] = useState(0);
   const [translationsTotal, setTranslationsTotal] = useState(0);
@@ -227,20 +240,44 @@ const AdminPanel: React.FC = () => {
   };
 
   const updateRequestStatus = async (id: string, newStatus: string) => {
+    if (!TRANSLATION_STATUSES.includes(newStatus as TranslationStatus)) {
+      toast.error(`Invalid status: ${newStatus}`);
+      return;
+    }
+    if (pendingUpdates.has(id)) return;
+    setPendingUpdates((s) => new Set(s).add(id));
     try {
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from('translation_requests')
         .update({ status: newStatus })
-        .eq('id', id);
+        .eq('id', id)
+        .select('id, status')
+        .single();
 
       if (error) throw error;
-      
-      // Reload data
-      loadTranslationRequests();
-      alert(`Request status updated to ${newStatus}`);
+      if (!data || data.status !== newStatus) {
+        throw new Error('Update did not persist (no row affected)');
+      }
+
+      // Update the in-memory row so the UI reflects the change immediately,
+      // then re-await the list to keep counts/filters consistent.
+      setTranslationRequests((prev) =>
+        prev.map((r) => (r.id === id ? { ...r, status: newStatus } : r))
+      );
+      if (selectedRequest && selectedRequest.id === id) {
+        setSelectedRequest({ ...selectedRequest, status: newStatus });
+      }
+      await loadTranslationRequests();
+      toast.success(`Request status updated to ${newStatus}`);
     } catch (error) {
       logger.error('Error updating status:', error);
-      alert('Error updating request status');
+      toast.error(error instanceof Error ? error.message : 'Error updating request status');
+    } finally {
+      setPendingUpdates((s) => {
+        const next = new Set(s);
+        next.delete(id);
+        return next;
+      });
     }
   };
 
@@ -285,20 +322,39 @@ const AdminPanel: React.FC = () => {
   };
 
   const updateLeadStatus = async (leadId: string, newStatus: string) => {
+    if (!LEAD_STATUSES.includes(newStatus as LeadStatus)) {
+      toast.error(`Invalid status: ${newStatus}`);
+      return;
+    }
+    if (pendingUpdates.has(leadId)) return;
+    setPendingUpdates((s) => new Set(s).add(leadId));
     try {
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from('contact_leads')
         .update({ status: newStatus })
-        .eq('id', leadId);
+        .eq('id', leadId)
+        .select('id, status')
+        .single();
 
       if (error) throw error;
-      
-      // Reload leads
-      loadContactLeads();
-      alert(`Lead status updated to ${newStatus}`);
+      if (!data || data.status !== newStatus) {
+        throw new Error('Update did not persist (no row affected)');
+      }
+
+      setContactLeads((prev) =>
+        prev.map((l) => (l.id === leadId ? { ...l, status: newStatus } : l))
+      );
+      await loadContactLeads();
+      toast.success(`Lead status updated to ${newStatus}`);
     } catch (error) {
       logger.error('Error updating lead status:', error);
-      alert('Error updating lead status');
+      toast.error(error instanceof Error ? error.message : 'Error updating lead status');
+    } finally {
+      setPendingUpdates((s) => {
+        const next = new Set(s);
+        next.delete(leadId);
+        return next;
+      });
     }
   };
 
@@ -670,9 +726,10 @@ const AdminPanel: React.FC = () => {
                 </div>
               </div>
 
-              {isLoading ? (
-                <SkeletonRows rows={6} rowClassName="h-20 w-full" />
-              ) : selectedRequest ? (
+              {/* Detail view takes precedence over the loading skeleton —
+                  pagination fired while a request is selected shouldn't
+                  blink the user back to the list. */}
+              {selectedRequest ? (
                 <div>
                   <button
                     onClick={() => setSelectedRequest(null)}
@@ -693,7 +750,8 @@ const AdminPanel: React.FC = () => {
                           <select
                             value={selectedRequest.status}
                             onChange={(e) => updateRequestStatus(selectedRequest.id, e.target.value)}
-                            className="px-3 py-2 bg-white/10 border border-white/20 rounded-lg text-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            disabled={pendingUpdates.has(selectedRequest.id)}
+                            className="px-3 py-2 bg-white/10 border border-white/20 rounded-lg text-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
                           >
                             <option value="pending">Pending</option>
                             <option value="in_progress">In Progress</option>
@@ -778,6 +836,8 @@ const AdminPanel: React.FC = () => {
                     />
                   </div>
                 </div>
+              ) : isLoading ? (
+                <SkeletonRows rows={6} rowClassName="h-20 w-full" />
               ) : (
                 <div className="bg-white/10 backdrop-blur-xl rounded-2xl border border-white/20 overflow-hidden">
                   <div className="overflow-x-auto">
@@ -843,13 +903,18 @@ const AdminPanel: React.FC = () => {
                   </div>
                 </div>
               )}
-              <Pager
-                page={translationsPage}
-                pageSize={PAGE_SIZE}
-                total={translationsTotal}
-                onChange={setTranslationsPage}
-                disabled={isLoading}
-              />
+              {/* Hide the pager while a request is selected — it would scroll
+                  to the bottom of the detail view and visually invite a click
+                  that resets the list page. */}
+              {!selectedRequest && (
+                <Pager
+                  page={translationsPage}
+                  pageSize={PAGE_SIZE}
+                  total={translationsTotal}
+                  onChange={setTranslationsPage}
+                  disabled={isLoading}
+                />
+              )}
             </div>
           )}
 

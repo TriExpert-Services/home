@@ -6,6 +6,7 @@ import {
 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { logger } from '../lib/logger';
+import { useToast } from '../contexts/ToastContext';
 
 interface BlogPost {
   id: string;
@@ -61,6 +62,8 @@ interface PostForm {
 }
 
 const BlogManagement: React.FC = () => {
+  const toast = useToast();
+  const [deletingId, setDeletingId] = useState<string | null>(null);
   const [posts, setPosts] = useState<BlogPost[]>([]);
   const [stats, setStats] = useState<BlogStats | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -207,22 +210,35 @@ const BlogManagement: React.FC = () => {
 
   const deletePost = async (postId: string) => {
     if (!confirm('Are you sure you want to delete this post?')) return;
+    if (deletingId) return;
+    setDeletingId(postId);
 
     try {
-      const { error } = await supabase
+      // Use .select() so we can confirm the row is actually gone instead of
+      // assuming a non-erroring DELETE persisted (RLS could silently no-op).
+      const { data: deleted, error } = await supabase
         .from('blog_posts')
         .delete()
-        .eq('id', postId);
+        .eq('id', postId)
+        .select('id');
 
       if (error) throw error;
+      if (!deleted || deleted.length === 0) {
+        throw new Error('Post was not deleted (possibly blocked by RLS)');
+      }
 
-      logger.debug('Post saved successfully');
-      loadBlogData();
-      alert('Post deleted successfully!');
+      // Optimistic local removal so the user sees the change immediately;
+      // refetch keeps stats/pagination consistent.
+      setPosts((prev) => prev.filter((p) => p.id !== postId));
+      logger.debug('Post deleted', postId);
+      await loadBlogData();
+      toast.success('Post deleted');
 
     } catch (error) {
       logger.error('Error deleting post:', error);
-      alert(`Error deleting post: ${error.message}`);
+      toast.error(`Error deleting post: ${error instanceof Error ? error.message : 'unknown'}`);
+    } finally {
+      setDeletingId(null);
     }
   };
 
@@ -462,7 +478,8 @@ const BlogManagement: React.FC = () => {
                         
                         <button
                           onClick={() => deletePost(post.id)}
-                          className="bg-red-600 hover:bg-red-700 text-white px-3 py-2 rounded-lg transition-all"
+                          disabled={deletingId === post.id}
+                          className="bg-red-600 hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed text-white px-3 py-2 rounded-lg transition-all"
                         >
                           <Trash2 className="w-4 h-4" />
                         </button>
