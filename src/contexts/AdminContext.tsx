@@ -97,22 +97,33 @@ export const AdminProvider: React.FC<AdminProviderProps> = ({ children }) => {
 
     init();
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       if (event === 'SIGNED_OUT' || !session) {
         setUser(null);
         return;
       }
 
+      // IMPORTANT: do not call supabase methods *inside* the onAuthStateChange
+      // callback — supabase-js holds an internal lock during auth events and
+      // any nested supabase.rpc / .from / .auth call deadlocks. We defer to the
+      // next tick so the lock has been released by the time loadAdminProfile
+      // fires its RPC. The login() handler also runs loadAdminProfile, so this
+      // path mostly matters for session restore on initial mount.
       if (event === 'SIGNED_IN' && session.user) {
-        const adminProfile = await loadAdminProfile(session.user.id, session.user.email);
-        if (cancelled) return;
+        const userId = session.user.id;
+        const userEmail = session.user.email;
+        setTimeout(async () => {
+          if (cancelled) return;
+          const adminProfile = await loadAdminProfile(userId, userEmail);
+          if (cancelled) return;
 
-        if (adminProfile) {
-          setUser(adminProfile);
-        } else {
-          await supabase.auth.signOut();
-          setUser(null);
-        }
+          if (adminProfile) {
+            setUser(adminProfile);
+          } else {
+            await supabase.auth.signOut();
+            setUser(null);
+          }
+        }, 0);
       }
     });
 
