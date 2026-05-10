@@ -145,7 +145,7 @@ BEGIN
 
     -- drop any pre-existing permissive policies
     EXECUTE (
-      SELECT string_agg(format('DROP POLICY IF EXISTS %I ON public.n8n_database_config;', polname), E'\n')
+      SELECT string_agg(format('DROP POLICY IF EXISTS %I ON public.n8n_database_config;', policyname), E'\n')
       FROM pg_policies WHERE schemaname='public' AND tablename='n8n_database_config'
     );
 
@@ -164,7 +164,7 @@ BEGIN
              WHERE table_schema='public' AND table_name='n8n_connection_logs') THEN
     EXECUTE 'ALTER TABLE public.n8n_connection_logs ENABLE ROW LEVEL SECURITY';
     EXECUTE (
-      SELECT string_agg(format('DROP POLICY IF EXISTS %I ON public.n8n_connection_logs;', polname), E'\n')
+      SELECT string_agg(format('DROP POLICY IF EXISTS %I ON public.n8n_connection_logs;', policyname), E'\n')
       FROM pg_policies WHERE schemaname='public' AND tablename='n8n_connection_logs'
     );
     EXECUTE 'REVOKE ALL ON public.n8n_connection_logs FROM anon';
@@ -195,12 +195,12 @@ BEGIN
     IF NOT EXISTS (
       SELECT 1 FROM pg_policies
       WHERE schemaname='public' AND tablename='blog_posts'
-        AND polname='blog_posts_public_read_published'
+        AND policyname='blog_posts_public_read_published'
     ) THEN
       EXECUTE $f$
         CREATE POLICY blog_posts_public_read_published
           ON public.blog_posts FOR SELECT TO anon, authenticated
-          USING (is_published = true)
+          USING (status = 'published')
       $f$;
     END IF;
 
@@ -223,7 +223,7 @@ BEGIN
              WHERE table_schema='public' AND table_name='projects') THEN
 
     EXECUTE (
-      SELECT string_agg(format('DROP POLICY IF EXISTS %I ON public.projects;', polname), E'\n')
+      SELECT string_agg(format('DROP POLICY IF EXISTS %I ON public.projects;', policyname), E'\n')
       FROM pg_policies WHERE schemaname='public' AND tablename='projects'
     );
     EXECUTE 'ALTER TABLE public.projects ENABLE ROW LEVEL SECURITY';
