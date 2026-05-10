@@ -33,23 +33,16 @@ RUN npm run build
 # Production stage
 FROM nginx:alpine
 
-# Copy built files from build stage
 COPY --from=build /app/dist /usr/share/nginx/html
-
-# Copy nginx configuration
 COPY nginx.conf /etc/nginx/nginx.conf
 
-# Create a simple health check script
-RUN echo '#!/bin/sh' > /health.sh && \
-    echo 'curl -f http://localhost:80 || exit 1' >> /health.sh && \
-    chmod +x /health.sh
+# Healthcheck uses wget (already in nginx:alpine via busybox) instead of curl.
+RUN printf '#!/bin/sh\nwget -q -O /dev/null http://localhost/health || exit 1\n' > /health.sh \
+    && chmod +x /health.sh
 
-# Expose port 80
 EXPOSE 80
 
-# Add health check
-HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
+HEALTHCHECK --interval=30s --timeout=3s --start-period=10s --retries=3 \
     CMD /health.sh
 
-# Start nginx
 CMD ["nginx", "-g", "daemon off;"]
