@@ -19,16 +19,20 @@ jobs:
     # the workflow.
     environment: DEPLOY
     steps:
-      - name: Configure SSH
+      - name: Load SSH key into agent
+        # webfactory/ssh-agent handles multi-line PEM keys correctly
+        # (writing the secret to a file and feeding it to ssh -i was
+        # tripping `error in libcrypto` whenever GitHub's UI normalised
+        # the key's newlines).
+        uses: webfactory/ssh-agent@v0.9.1
+        with:
+          ssh-private-key: ${{ secrets.DEPLOY_SSH_KEY }}
+
+      - name: Trust Hetzner host key
         env:
-          DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
           HETZNER_HOST: ${{ secrets.HETZNER_HOST }}
         run: |
           mkdir -p ~/.ssh && chmod 700 ~/.ssh
-          printf '%s\n' "$DEPLOY_SSH_KEY" > ~/.ssh/id_ed25519
-          chmod 600 ~/.ssh/id_ed25519
-          # Trust Hetzner's host key (Proxmox is reached through ProxyJump
-          # and is verified by ssh once accepted on Hetzner).
           ssh-keyscan -t ed25519,rsa,ecdsa "$HETZNER_HOST" >> ~/.ssh/known_hosts
 
       - name: Trigger deploy
@@ -37,8 +41,7 @@ jobs:
           PROXMOX_HOST: ${{ secrets.PROXMOX_HOST }}
           LXC_ID: ${{ secrets.LXC_ID }}
         run: |
-          ssh -i ~/.ssh/id_ed25519 \
-              -o StrictHostKeyChecking=accept-new \
+          ssh -o StrictHostKeyChecking=accept-new \
               -o ConnectTimeout=10 \
               -J "root@${HETZNER_HOST}" \
               "root@${PROXMOX_HOST}" \
