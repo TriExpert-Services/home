@@ -20,13 +20,24 @@ jobs:
     environment: DEPLOY
     steps:
       - name: Load SSH key into agent
-        # webfactory/ssh-agent handles multi-line PEM keys correctly
-        # (writing the secret to a file and feeding it to ssh -i was
-        # tripping `error in libcrypto` whenever GitHub's UI normalised
-        # the key's newlines).
-        uses: webfactory/ssh-agent@v0.9.1
-        with:
-          ssh-private-key: ${{ secrets.DEPLOY_SSH_KEY }}
+        # The DEPLOY_SSH_KEY secret holds the OpenSSH PEM body
+        # encoded as a single-line base64 string. Multi-line secrets
+        # got their newlines mangled by the GitHub UI when pasted
+        # (libcrypto couldn't parse the resulting body). Encoding to
+        # base64 and decoding here sidesteps every newline-handling
+        # corner case.
+        env:
+          DEPLOY_SSH_KEY_B64: ${{ secrets.DEPLOY_SSH_KEY }}
+        run: |
+          mkdir -p ~/.ssh && chmod 700 ~/.ssh
+          printf '%s' "$DEPLOY_SSH_KEY_B64" | base64 -d > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+          # Verify the key parses before continuing — fail fast if not.
+          ssh-keygen -y -f ~/.ssh/id_ed25519 > /dev/null
+          eval "$(ssh-agent -s)"
+          ssh-add ~/.ssh/id_ed25519
+          echo "SSH_AUTH_SOCK=$SSH_AUTH_SOCK" >> "$GITHUB_ENV"
+          echo "SSH_AGENT_PID=$SSH_AGENT_PID" >> "$GITHUB_ENV"
 
       - name: Trust Hetzner host key
         env:
