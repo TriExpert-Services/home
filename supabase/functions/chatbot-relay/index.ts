@@ -201,11 +201,32 @@ Deno.serve(async (req: Request) => {
   }
 
   const upstreamText = await upstream.text();
-  // Forward upstream content type when reasonable; default JSON.
-  const contentType = upstream.headers.get('Content-Type') ?? 'application/json';
 
-  return new Response(upstreamText, {
+  // Always return a JSON envelope so the frontend gets a stable shape
+  // regardless of how the n8n workflow chose to respond (text/html,
+  // text/plain, application/json, etc.). supabase-js only auto-parses
+  // application/json reliably across versions.
+  let reply = upstreamText;
+  // If the upstream already sent JSON, try to lift the bot text out of
+  // common shapes; otherwise keep the raw string.
+  if ((upstream.headers.get('Content-Type') ?? '').includes('application/json')) {
+    try {
+      const parsed = JSON.parse(upstreamText);
+      reply =
+        parsed?.response ??
+        parsed?.message ??
+        parsed?.reply ??
+        parsed?.text ??
+        parsed?.answer ??
+        parsed?.output ??
+        upstreamText;
+    } catch {
+      // leave reply as the raw text
+    }
+  }
+
+  return new Response(JSON.stringify({ reply }), {
     status: upstream.ok ? 200 : 502,
-    headers: { ...cors, 'Content-Type': contentType },
+    headers: { ...cors, 'Content-Type': 'application/json' },
   });
 });
