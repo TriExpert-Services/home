@@ -251,8 +251,8 @@ const BlogManagement: React.FC = () => {
 
   const togglePostStatus = async (postId: string, currentStatus: string) => {
     const newStatus = currentStatus === 'published' ? 'draft' : 'published';
-    const updateData: any = { status: newStatus };
-    
+    const updateData: { status: string; published_at?: string } = { status: newStatus };
+
     if (newStatus === 'published') {
       updateData.published_at = new Date().toISOString();
     }

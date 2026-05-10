@@ -4,9 +4,26 @@ import { supabase } from '../lib/supabase';
 import QRCodeGenerator from './QRCodeGenerator';
 import { logger } from '../lib/logger';
 
+interface TranslationRequestRow {
+  id: string;
+  full_name?: string;
+  email?: string;
+  document_type?: string;
+  page_count?: number;
+  total_cost?: number;
+  status?: string;
+  translator_notes?: string | null;
+  quality_score?: number | null;
+  verification_link?: string | null;
+  file_urls?: string[] | null;
+  translated_file_urls?: string[] | null;
+  delivery_date?: string | null;
+  [key: string]: unknown;
+}
+
 interface DocumentManagementProps {
   requestId: string;
-  requestData: any;
+  requestData: TranslationRequestRow;
   onUpdate: () => void;
 }
 
