@@ -99,29 +99,18 @@ const Chatbot = () => {
         throw new Error(error.message ?? 'Chat relay failed');
       }
 
-      const responseData = typeof data === 'string' ? data : JSON.stringify(data);
-      logger.debug('Raw relay response:', responseData);
+      logger.debug('Relay response:', data);
 
+      // chatbot-relay always wraps the bot reply in `{ reply: string }`.
       let botResponseText = '';
-
-      try {
-        // Try to parse as JSON first
-        const jsonData = JSON.parse(responseData);
-        logger.debug('Parsed JSON:', jsonData);
-        
-        // Extract response from various possible formats
-        botResponseText = jsonData.response || 
-                         jsonData.message || 
-                         jsonData.reply || 
-                         jsonData.text || 
-                         jsonData.answer ||
-                         JSON.stringify(jsonData);
-      } catch (parseError) {
-        // If not JSON, treat as plain text
-        botResponseText = responseData;
+      if (data && typeof data === 'object' && typeof (data as { reply?: unknown }).reply === 'string') {
+        botResponseText = (data as { reply: string }).reply;
+      } else if (typeof data === 'string') {
+        botResponseText = data;
+      } else {
+        botResponseText = JSON.stringify(data ?? '');
       }
 
-      // Clean up the response
       botResponseText = botResponseText.trim();
       
       if (!botResponseText) {
