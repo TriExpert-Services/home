@@ -1,12 +1,24 @@
-import React, { useState, useEffect } from 'react';
-import { Shield, Users, FileText, Settings, Home, CreditCard as Edit, Eye, Download, Trash2, ExternalLink, LogOut, RefreshCcw, Star, AlertCircle, CheckCircle, X, XCircle, AlertTriangle, Calendar, Clock, DollarSign, TrendingUp, BarChart3, Plus, Search, Filter, Import as SortAsc, Dessert as SortDesc, MoreVertical, ChevronLeft, ChevronRight, ChevronDown, ChevronUp, MessageSquare, Phone, Mail, Send, Building, Target, Globe, MapPin, User, FolderOpen, BookOpen, Bot } from 'lucide-react';
+import React, { useState, useEffect, Suspense, lazy } from 'react';
+import { Shield, Users, FileText, Settings, Home, CreditCard as Edit, Eye, Download, Trash2, ExternalLink, LogOut, RefreshCcw, Star, AlertCircle, CheckCircle, X, XCircle, AlertTriangle, Calendar, Clock, DollarSign, TrendingUp, BarChart3, Plus, Search, Filter, Import as SortAsc, Dessert as SortDesc, MoreVertical, ChevronLeft, ChevronRight, ChevronDown, ChevronUp, MessageSquare, Phone, Mail, Send, Building, Target, Globe, MapPin, User, FolderOpen, BookOpen, Bot, Loader2 } from 'lucide-react';
 import { useAdmin } from '../contexts/AdminContext';
 import { supabase } from '../lib/supabase';
-import DocumentManagement from './DocumentManagement';
-import ProjectManagement from './ProjectManagement';
-import BlogManagement from './BlogManagement';
-import WhatsAppChatHistory from './WhatsAppChatHistory';
-import N8nConfiguration from './N8nConfiguration';
+import { logger } from '../lib/logger';
+import { ErrorBoundary } from './ErrorBoundary';
+import { Pager } from './Pager';
+import { SkeletonRows } from './Skeleton';
+
+// Heavy admin sub-tabs — only fetched when their tab is opened.
+const DocumentManagement   = lazy(() => import('./DocumentManagement'));
+const ProjectManagement    = lazy(() => import('./ProjectManagement'));
+const BlogManagement       = lazy(() => import('./BlogManagement'));
+const WhatsAppChatHistory  = lazy(() => import('./WhatsAppChatHistory'));
+const N8nConfiguration     = lazy(() => import('./N8nConfiguration'));
+
+const TabLoader = () => (
+  <div className="flex items-center justify-center py-24">
+    <Loader2 className="w-8 h-8 text-white/60 animate-spin" />
+  </div>
+);
 
 interface TranslationRequest {
   id: string;
@@ -63,15 +75,23 @@ interface ContactLead {
   estimated_value: number | null;
 }
 
+const PAGE_SIZE = 50;
+
 const AdminPanel: React.FC = () => {
   const { user, logout } = useAdmin();
   const [activeTab, setActiveTab] = useState('overview');
   const [translationRequests, setTranslationRequests] = useState<TranslationRequest[]>([]);
+  const [translationsPage, setTranslationsPage] = useState(0);
+  const [translationsTotal, setTranslationsTotal] = useState(0);
   const [selectedRequest, setSelectedRequest] = useState<TranslationRequest | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [reviews, setReviews] = useState<Review[]>([]);
+  const [reviewsPage, setReviewsPage] = useState(0);
+  const [reviewsTotal, setReviewsTotal] = useState(0);
+  const [leadsPage, setLeadsPage] = useState(0);
+  const [leadsTotal, setLeadsTotal] = useState(0);
   const [reviewsStats, setReviewsStats] = useState({
     totalReviews: 0,
     averageRating: 0,
@@ -88,7 +108,7 @@ const AdminPanel: React.FC = () => {
     conversion_rate: 0
   });
 
-  // Load data when component mounts or tab changes
+  // Load data when component mounts, tab changes, or page changes
   useEffect(() => {
     if (activeTab === 'translations') {
       loadTranslationRequests();
@@ -97,20 +117,25 @@ const AdminPanel: React.FC = () => {
     } else if (activeTab === 'leads') {
       loadContactLeads();
     }
-  }, [activeTab]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeTab, translationsPage, reviewsPage, leadsPage]);
 
   const loadTranslationRequests = async () => {
     setIsLoading(true);
     try {
-      const { data, error } = await supabase
+      const from = translationsPage * PAGE_SIZE;
+      const to = from + PAGE_SIZE - 1;
+      const { data, error, count } = await supabase
         .from('translation_requests')
-        .select('*')
-        .order('created_at', { ascending: false });
+        .select('*', { count: 'exact' })
+        .order('created_at', { ascending: false })
+        .range(from, to);
 
       if (error) throw error;
       setTranslationRequests(data || []);
+      setTranslationsTotal(count ?? 0);
     } catch (error) {
-      console.error('Error loading translation requests:', error);
+      logger.error('Error loading translation requests:', error);
     } finally {
       setIsLoading(false);
     }
@@ -119,17 +144,21 @@ const AdminPanel: React.FC = () => {
   const loadReviews = async () => {
     setIsLoading(true);
     try {
-      // Load reviews
-      const { data: reviewsData, error: reviewsError } = await supabase
+      // Load reviews (paginated)
+      const from = reviewsPage * PAGE_SIZE;
+      const to = from + PAGE_SIZE - 1;
+      const { data: reviewsData, error: reviewsError, count: reviewsCount } = await supabase
         .from('client_reviews')
         .select(`
           *,
           translation_requests(full_name, document_type, total_cost)
-        `)
-        .order('created_at', { ascending: false });
+        `, { count: 'exact' })
+        .order('created_at', { ascending: false })
+        .range(from, to);
 
       if (reviewsError) throw reviewsError;
       setReviews(reviewsData || []);
+      setReviewsTotal(reviewsCount ?? 0);
 
       // Load review statistics
       const { data: statsData, error: statsError } = await supabase
@@ -147,7 +176,7 @@ const AdminPanel: React.FC = () => {
         });
       }
     } catch (error) {
-      console.error('Error loading reviews:', error);
+      logger.error('Error loading reviews:', error);
     } finally {
       setIsLoading(false);
     }
@@ -156,14 +185,18 @@ const AdminPanel: React.FC = () => {
   const loadContactLeads = async () => {
     setIsLoading(true);
     try {
-      // Load leads
-      const { data: leadsData, error: leadsError } = await supabase
+      // Load leads (paginated)
+      const from = leadsPage * PAGE_SIZE;
+      const to = from + PAGE_SIZE - 1;
+      const { data: leadsData, error: leadsError, count: leadsCount } = await supabase
         .from('contact_leads')
-        .select('*')
-        .order('created_at', { ascending: false });
+        .select('*', { count: 'exact' })
+        .order('created_at', { ascending: false })
+        .range(from, to);
 
       if (leadsError) throw leadsError;
       setContactLeads(leadsData || []);
+      setLeadsTotal(leadsCount ?? 0);
 
       // Load leads statistics
       const { data: statsData, error: statsError } = await supabase
@@ -172,7 +205,7 @@ const AdminPanel: React.FC = () => {
         .single();
 
       if (statsError) {
-        console.warn('Error loading leads stats:', statsError);
+        logger.warn('Error loading leads stats:', statsError);
         // Set default stats if view doesn't exist yet
         setLeadsStats({
           total_leads: leadsData?.length || 0,
@@ -187,7 +220,7 @@ const AdminPanel: React.FC = () => {
         setLeadsStats(statsData);
       }
     } catch (error) {
-      console.error('Error loading contact leads:', error);
+      logger.error('Error loading contact leads:', error);
     } finally {
       setIsLoading(false);
     }
@@ -206,7 +239,7 @@ const AdminPanel: React.FC = () => {
       loadTranslationRequests();
       alert(`Request status updated to ${newStatus}`);
     } catch (error) {
-      console.error('Error updating status:', error);
+      logger.error('Error updating status:', error);
       alert('Error updating request status');
     }
   };
@@ -228,7 +261,7 @@ const AdminPanel: React.FC = () => {
       loadReviews();
       alert(`Review ${approved ? 'approved' : 'rejected'} successfully`);
     } catch (error) {
-      console.error('Error updating review:', error);
+      logger.error('Error updating review:', error);
       alert('Error updating review status');
     }
   };
@@ -246,7 +279,7 @@ const AdminPanel: React.FC = () => {
       loadReviews();
       alert(`Review ${featured ? 'marked as featured' : 'removed from featured'}`);
     } catch (error) {
-      console.error('Error updating featured status:', error);
+      logger.error('Error updating featured status:', error);
       alert('Error updating featured status');
     }
   };
@@ -264,7 +297,7 @@ const AdminPanel: React.FC = () => {
       loadContactLeads();
       alert(`Lead status updated to ${newStatus}`);
     } catch (error) {
-      console.error('Error updating lead status:', error);
+      logger.error('Error updating lead status:', error);
       alert('Error updating lead status');
     }
   };
@@ -282,7 +315,7 @@ const AdminPanel: React.FC = () => {
       loadContactLeads();
       alert('Lead notes updated successfully');
     } catch (error) {
-      console.error('Error updating lead notes:', error);
+      logger.error('Error updating lead notes:', error);
       alert('Error updating lead notes');
     }
   };
@@ -489,6 +522,8 @@ const AdminPanel: React.FC = () => {
 
         {/* Main Content */}
         <div className="flex-1 p-8">
+          <ErrorBoundary key={activeTab} fallbackTitle={`The "${activeTab}" tab failed to load`}>
+          <Suspense fallback={<TabLoader />}>
           {/* Overview Tab */}
           {activeTab === 'overview' && (
             <div>
@@ -636,10 +671,7 @@ const AdminPanel: React.FC = () => {
               </div>
 
               {isLoading ? (
-                <div className="text-center py-12">
-                  <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-white"></div>
-                  <p className="text-white mt-4">Loading...</p>
-                </div>
+                <SkeletonRows rows={6} rowClassName="h-20 w-full" />
               ) : selectedRequest ? (
                 <div>
                   <button
@@ -811,6 +843,13 @@ const AdminPanel: React.FC = () => {
                   </div>
                 </div>
               )}
+              <Pager
+                page={translationsPage}
+                pageSize={PAGE_SIZE}
+                total={translationsTotal}
+                onChange={setTranslationsPage}
+                disabled={isLoading}
+              />
             </div>
           )}
 
@@ -881,10 +920,7 @@ const AdminPanel: React.FC = () => {
               </div>
 
               {isLoading ? (
-                <div className="text-center py-12">
-                  <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-white"></div>
-                  <p className="text-white mt-4">Loading reviews...</p>
-                </div>
+                <SkeletonRows rows={6} rowClassName="h-32 w-full" />
               ) : (
                 <div className="space-y-6">
                   {reviews.map((review) => (
@@ -1000,6 +1036,13 @@ const AdminPanel: React.FC = () => {
                   )}
                 </div>
               )}
+              <Pager
+                page={reviewsPage}
+                pageSize={PAGE_SIZE}
+                total={reviewsTotal}
+                onChange={setReviewsPage}
+                disabled={isLoading}
+              />
             </div>
           )}
 
@@ -1059,10 +1102,7 @@ const AdminPanel: React.FC = () => {
               </div>
 
               {isLoading ? (
-                <div className="text-center py-12">
-                  <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-white"></div>
-                  <p className="text-white mt-4">Loading leads...</p>
-                </div>
+                <SkeletonRows rows={6} rowClassName="h-24 w-full" />
               ) : (
                 <div className="space-y-4">
                   {contactLeads.map((lead) => (
@@ -1165,6 +1205,13 @@ const AdminPanel: React.FC = () => {
                   )}
                 </div>
               )}
+              <Pager
+                page={leadsPage}
+                pageSize={PAGE_SIZE}
+                total={leadsTotal}
+                onChange={setLeadsPage}
+                disabled={isLoading}
+              />
             </div>
           )}
 
@@ -1227,6 +1274,8 @@ const AdminPanel: React.FC = () => {
               </div>
             </div>
           )}
+          </Suspense>
+          </ErrorBoundary>
         </div>
       </div>
     </div>

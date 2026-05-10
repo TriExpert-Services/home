@@ -1,5 +1,5 @@
 # Build stage
-FROM node:18-alpine as build
+FROM node:22-alpine AS build
 
 WORKDIR /app
 
@@ -13,14 +13,19 @@ RUN npm ci
 COPY . .
 
 # Build arguments for environment variables
+# - VITE_N8N_WEBHOOK_URL: legacy translation-form webhook (still hit directly)
+# - VITE_N8N_CONTACT_WEBHOOK_URL: contact form n8n webhook
+# (chatbot is now proxied through the chatbot-relay Supabase edge
+#  function — its URL/secret live in Supabase secrets, not in the bundle.)
 ARG VITE_SUPABASE_URL
 ARG VITE_SUPABASE_ANON_KEY
 ARG VITE_N8N_WEBHOOK_URL
+ARG VITE_N8N_CONTACT_WEBHOOK_URL
 
-# Set environment variables for build
 ENV VITE_SUPABASE_URL=$VITE_SUPABASE_URL
 ENV VITE_SUPABASE_ANON_KEY=$VITE_SUPABASE_ANON_KEY
 ENV VITE_N8N_WEBHOOK_URL=$VITE_N8N_WEBHOOK_URL
+ENV VITE_N8N_CONTACT_WEBHOOK_URL=$VITE_N8N_CONTACT_WEBHOOK_URL
 
 # Build the application with environment variables
 RUN npm run build

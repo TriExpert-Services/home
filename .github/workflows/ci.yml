@@ -1,0 +1,39 @@
+name: ci
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+      - run: npm ci
+      - run: npm run lint
+        continue-on-error: true   # lint surfaces 60+ pre-existing issues; non-blocking until cleanup PR
+      - run: npm run build
+        env:
+          VITE_SUPABASE_URL: https://placeholder.supabase.co
+          VITE_SUPABASE_ANON_KEY: placeholder
+          VITE_N8N_WEBHOOK_URL: https://placeholder.example.com
+          VITE_N8N_CONTACT_WEBHOOK_URL: https://placeholder.example.com
+          VITE_N8N_CHAT_WEBHOOK_URL: https://placeholder.example.com
+          VITE_N8N_WEBHOOK_TOKEN: placeholder
+
+  audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+      - run: npm ci
+      - name: npm audit (high+ blocking)
+        run: npm audit --audit-level=high

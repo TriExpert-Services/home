@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Phone, Mail, MapPin, Clock, Send, CheckCircle, AlertCircle, Loader2 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useLanguage } from '../contexts/LanguageContext';
+import { logger } from '../lib/logger';
 
 interface FormData {
   name: string;
@@ -71,9 +72,13 @@ const Contact = () => {
     if (!webhookUrl) return; // n8n step is optional; DB write is the source of truth
 
     try {
+      const webhookToken = import.meta.env.VITE_N8N_WEBHOOK_TOKEN;
+      const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+      if (webhookToken) headers['X-Webhook-Token'] = webhookToken;
+
       const response = await fetch(webhookUrl, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers,
         body: JSON.stringify(contactData),
       });
       if (!response.ok) {
@@ -81,7 +86,7 @@ const Contact = () => {
       }
     } catch (error) {
       // n8n is best-effort; don't break the user flow if it's down
-      console.error('Error sending to N8N:', error);
+      logger.error('Error sending to N8N:', error);
     }
   };
 
@@ -110,7 +115,7 @@ const Contact = () => {
       });
 
       if (dbError) {
-        console.error('Database error:', dbError);
+        logger.error('Database error:', dbError);
         setSubmitError('Could not submit your message. Please try again.');
         setIsSubmitting(false);
         return;
@@ -134,7 +139,7 @@ const Contact = () => {
 
       setTimeout(() => setIsSubmitted(false), 5000);
     } catch (error) {
-      console.error('Contact form error:', error);
+      logger.error('Contact form error:', error);
       setSubmitError('Error processing your request. Please try again.');
     } finally {
       setIsSubmitting(false);

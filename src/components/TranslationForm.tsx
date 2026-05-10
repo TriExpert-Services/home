@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { ArrowLeft, User, Globe, Upload, Clock, FileText, Calendar, CreditCard, Loader2, CheckCircle, AlertCircle, Zap, Languages } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useLanguage } from '../contexts/LanguageContext';
+import { logger } from '../lib/logger';
 
 interface FormData {
   fullName: string;
@@ -162,7 +163,7 @@ const TranslationForm = ({ onBack }: { onBack: () => void }) => {
             .upload(fileName, file);
 
           if (error) {
-            console.error('Error uploading file:', error);
+            logger.error('Error uploading file:', error);
             throw new Error(`Error uploading ${file.name}: ${error.message}`);
           }
 
@@ -172,20 +173,20 @@ const TranslationForm = ({ onBack }: { onBack: () => void }) => {
 
           fileUrls.push(publicUrl.publicUrl);
         } catch (fileError) {
-          console.error(`Failed to upload ${file.name}:`, fileError);
+          logger.error(`Failed to upload ${file.name}:`, fileError);
           // Continue with other files, don't fail the entire upload
         }
       }
 
       return fileUrls;
     } catch (error) {
-      console.error('File upload failed:', error);
+      logger.error('File upload failed:', error);
       // Return empty array to continue with form submission
       return [];
     }
   };
 
-  const sendToN8N = async (requestData: any) => {
+  const sendToN8N = async (requestData: Record<string, unknown>): Promise<unknown> => {
     const webhookUrl = import.meta.env.VITE_N8N_WEBHOOK_URL;
     
     if (!webhookUrl) {
@@ -208,7 +209,7 @@ const TranslationForm = ({ onBack }: { onBack: () => void }) => {
     return responseData;
   };
 
-  const waitForPaymentLink = async (requestData: any): Promise<string | null> => {
+  const waitForPaymentLink = async (requestData: Record<string, unknown>): Promise<string | null> => {
     return new Promise((resolve) => {
       const timeout = setTimeout(() => {
         resolve(null); // Timeout after 20 seconds
@@ -232,7 +233,7 @@ const TranslationForm = ({ onBack }: { onBack: () => void }) => {
         })
         .catch((error) => {
           clearTimeout(timeout);
-          console.error('Error getting payment link:', error);
+          logger.error('Error getting payment link:', error);
           resolve(null);
         });
     });
@@ -261,7 +262,7 @@ const TranslationForm = ({ onBack }: { onBack: () => void }) => {
       try {
         fileUrls = await uploadFiles();
       } catch (uploadError) {
-        console.error('File upload failed:', uploadError);
+        logger.error('File upload failed:', uploadError);
         uploadWarning = language === 'es' 
           ? 'Los archivos no pudieron subirse, pero su solicitud fue enviada. Contacte con nosotros para enviar los archivos.'
           : 'Files could not be uploaded, but your request was submitted. Please contact us to send the files.';
@@ -322,7 +323,7 @@ const TranslationForm = ({ onBack }: { onBack: () => void }) => {
 
       // Show upload warning if files failed to upload
       if (uploadWarning) {
-        console.warn(uploadWarning);
+        logger.warn(uploadWarning);
       }
 
       // Reset form
@@ -342,7 +343,7 @@ const TranslationForm = ({ onBack }: { onBack: () => void }) => {
       });
 
     } catch (error) {
-      console.error('Error submitting form:', error);
+      logger.error('Error submitting form:', error);
       setSubmitError(error instanceof Error ? error.message : 'Error desconocido');
     } finally {
       setIsSubmitting(false);

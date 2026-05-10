@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, ReactNode, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
+import { logger } from '../lib/logger';
 
 interface AdminUser {
   id: string;
@@ -88,7 +89,7 @@ export const AdminProvider: React.FC<AdminProviderProps> = ({ children }) => {
           }
         }
       } catch (err) {
-        console.error('Session init failed', err);
+        logger.error('Session init failed', err);
       } finally {
         if (!cancelled) setIsLoading(false);
       }
@@ -135,7 +136,7 @@ export const AdminProvider: React.FC<AdminProviderProps> = ({ children }) => {
       setUser(adminProfile);
       return true;
     } catch (err) {
-      console.error('Login failed', err);
+      logger.error('Login failed', err);
       return false;
     }
   };

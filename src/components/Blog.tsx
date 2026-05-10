@@ -6,6 +6,8 @@ import {
 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useLanguage } from '../contexts/LanguageContext';
+import { logger } from '../lib/logger';
+import { storage, isStringArray } from '../lib/storage';
 
 const SANITIZE_CONFIG = {
   ALLOWED_TAGS: [
@@ -55,10 +57,10 @@ interface BlogPost {
 }
 
 function getOrCreateClientId(): string {
-  let id = localStorage.getItem('triexpert-client-id');
+  let id = storage.get('client-id');
   if (!id) {
-    id = (crypto?.randomUUID?.() ?? `c_${Date.now()}_${Math.random().toString(36).slice(2)}`);
-    localStorage.setItem('triexpert-client-id', id);
+    id = crypto.randomUUID();
+    storage.set('client-id', id);
   }
   return id;
 }
@@ -94,36 +96,25 @@ const Blog: React.FC<BlogProps> = ({ onBack }) => {
       if (error) throw error;
       setPosts(data || []);
     } catch (error) {
-      console.error('Error loading blog posts:', error);
+      logger.error('Error loading blog posts:', error);
     } finally {
       setIsLoading(false);
     }
   };
 
   const loadLikedPosts = () => {
-    const liked = localStorage.getItem('triexpert-liked-posts');
-    if (liked) {
-      setLikedPosts(new Set(JSON.parse(liked)));
-    }
+    const liked = storage.getJSON('liked-posts', isStringArray);
+    if (liked) setLikedPosts(new Set(liked));
   };
 
   const handleLike = async (postId: string) => {
     try {
-      // Per-browser stable id mapped into a deterministic 10.x.x.x address
-      // so the inet-typed `p_ip_address` parameter accepts it. Replaces the
-      // previous hardcoded "192.168.1.1" that made every visitor share a row.
-      // TODO: replace toggle_blog_like with a client_id-aware RPC.
       const clientId = getOrCreateClientId();
-      let h = 2166136261;
-      for (let i = 0; i < clientId.length; i++) {
-        h = Math.imul(h ^ clientId.charCodeAt(i), 16777619) >>> 0;
-      }
-      const fakeIp = `10.${(h >> 16) & 0xff}.${(h >> 8) & 0xff}.${h & 0xff}`;
 
       const { data, error } = await supabase
-        .rpc('toggle_blog_like', {
+        .rpc('toggle_blog_post_like', {
           p_blog_post_id: postId,
-          p_ip_address: fakeIp
+          p_client_id: clientId,
         });
 
       if (error) throw error;
@@ -137,7 +128,7 @@ const Blog: React.FC<BlogProps> = ({ onBack }) => {
       }
       
       setLikedPosts(newLikedPosts);
-      localStorage.setItem('triexpert-liked-posts', JSON.stringify([...newLikedPosts]));
+      storage.setJSON('liked-posts', [...newLikedPosts]);
       
       // Update post like count locally
       setPosts(posts.map(post => 
@@ -154,7 +145,7 @@ const Blog: React.FC<BlogProps> = ({ onBack }) => {
       }
 
     } catch (error) {
-      console.error('Error toggling like:', error);
+      logger.error('Error toggling like:', error);
     }
   };
 
@@ -170,7 +161,7 @@ const Blog: React.FC<BlogProps> = ({ onBack }) => {
           : p
       ));
     } catch (error) {
-      console.error('Error incrementing view:', error);
+      logger.error('Error incrementing view:', error);
     }
 
     setSelectedPost(post);

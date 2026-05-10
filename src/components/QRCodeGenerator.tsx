@@ -1,6 +1,7 @@
 import React, { useState, useRef } from 'react';
 import { QrCode, Download, Copy, CheckCircle, Eye, ExternalLink, Share } from 'lucide-react';
 import QRCodeLib from 'qrcode';
+import { logger } from '../lib/logger';
 
 interface QRCodeGeneratorProps {
   verificationLink: string;
@@ -35,7 +36,7 @@ const QRCodeGenerator: React.FC<QRCodeGeneratorProps> = ({
       
       setQrCodeDataUrl(qrDataUrl);
     } catch (error) {
-      console.error('Error generating QR code:', error);
+      logger.error('Error generating QR code:', error);
       alert('Error generating QR code');
     } finally {
       setIsGenerating(false);
@@ -65,7 +66,7 @@ const QRCodeGenerator: React.FC<QRCodeGeneratorProps> = ({
       link.href = highQualityQR;
       link.click();
     } catch (error) {
-      console.error('Error downloading QR code:', error);
+      logger.error('Error downloading QR code:', error);
       alert('Error downloading QR code');
     }
   };
@@ -76,7 +77,7 @@ const QRCodeGenerator: React.FC<QRCodeGeneratorProps> = ({
       setLinkCopied(true);
       setTimeout(() => setLinkCopied(false), 2000);
     } catch (error) {
-      console.error('Error copying link:', error);
+      logger.error('Error copying link:', error);
     }
   };
 

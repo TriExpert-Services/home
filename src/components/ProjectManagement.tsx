@@ -5,6 +5,7 @@ import {
   ChevronDown, ChevronRight, Star, User
 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
+import { logger } from '../lib/logger';
 
 interface Project {
   id: string;
@@ -105,7 +106,7 @@ const ProjectManagement: React.FC = () => {
       setQualifiedLeads(leadsData || []);
 
     } catch (error) {
-      console.error('Error loading projects data:', error);
+      logger.error('Error loading projects data:', error);
     } finally {
       setIsLoading(false);
     }
@@ -136,7 +137,12 @@ const ProjectManagement: React.FC = () => {
 
   const updateProjectStatus = async (projectId: string, newStatus: string) => {
     try {
-      const updates: any = { 
+      const updates: {
+        status: string;
+        updated_at: string;
+        actual_delivery_date?: string;
+        progress_percentage?: number;
+      } = {
         status: newStatus,
         updated_at: new Date().toISOString()
       };
@@ -158,7 +164,7 @@ const ProjectManagement: React.FC = () => {
       alert('Project status updated successfully!');
 
     } catch (error) {
-      console.error('Error updating project status:', error);
+      logger.error('Error updating project status:', error);
       alert('Error updating project status');
     }
   };
@@ -178,7 +184,7 @@ const ProjectManagement: React.FC = () => {
       loadProjectsData();
 
     } catch (error) {
-      console.error('Error updating project progress:', error);
+      logger.error('Error updating project progress:', error);
       alert('Error updating project progress');
     }
   };
@@ -207,7 +213,7 @@ const ProjectManagement: React.FC = () => {
       alert('Lead converted to project successfully!');
 
     } catch (error) {
-      console.error('Error converting lead to project:', error);
+      logger.error('Error converting lead to project:', error);
       alert('Error converting lead to project');
     }
   };

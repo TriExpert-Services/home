@@ -4,6 +4,8 @@ import {
   Eye, EyeOff, Info, Lock, Server, Key
 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
+import { logger } from '../lib/logger';
+import { useToast } from '../contexts/ToastContext';
 
 interface ConfigData {
   host: string;
@@ -16,6 +18,7 @@ interface ConfigData {
 }
 
 const N8nConfiguration: React.FC = () => {
+  const toast = useToast();
   const [config, setConfig] = useState<ConfigData>({
     host: 'localhost',
     port: 5432,
@@ -66,7 +69,8 @@ const N8nConfiguration: React.FC = () => {
         });
       }
     } catch (err) {
-      console.error('Error loading configuration:', err);
+      logger.error('Error loading configuration:', err);
+      toast.error('Could not load N8N configuration');
     }
   };
 
@@ -139,7 +143,7 @@ const N8nConfiguration: React.FC = () => {
         });
       }
     } catch (err) {
-      console.error('Error testing connection:', err);
+      logger.error('Error testing connection:', err);
       setTestResult({
         success: false,
         message: err.message || 'Failed to test connection',
@@ -190,7 +194,7 @@ const N8nConfiguration: React.FC = () => {
         setSaveMessage(null);
       }, 3000);
     } catch (err) {
-      console.error('Error saving configuration:', err);
+      logger.error('Error saving configuration:', err);
       setSaveMessage({
         type: 'error',
         text: err.message || 'Failed to save configuration',

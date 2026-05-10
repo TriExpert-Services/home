@@ -1,6 +1,8 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { MessageCircle, X, Send, User, Bot, Loader2 } from 'lucide-react';
 import { useLanguage } from '../contexts/LanguageContext';
+import { logger } from '../lib/logger';
+import { supabase } from '../lib/supabase';
 
 interface Message {
   id: string;
@@ -21,6 +23,14 @@ const Chatbot = () => {
   
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+
+  // Cap the in-memory transcript so a long-running tab doesn't grow unbounded.
+  const MAX_MESSAGES = 50;
+  const appendMessage = (msg: Message) =>
+    setMessages((prev) => {
+      const next = [...prev, msg];
+      return next.length > MAX_MESSAGES ? next.slice(next.length - MAX_MESSAGES) : next;
+    });
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -62,48 +72,42 @@ const Chatbot = () => {
       timestamp: new Date()
     };
 
-    setMessages(prev => [...prev, userMessage]);
+    appendMessage(userMessage);
     setInputValue('');
     setIsLoading(true);
 
     try {
-      // Prepare data for N8N webhook
+      // Send through the chatbot-relay edge function instead of hitting the
+      // n8n webhook directly. The edge function adds origin allowlist,
+      // rate limiting, payload validation, and HMAC signing — none of which
+      // we can do safely from the public bundle.
       const requestData = {
         message: userMessage.text,
         session_id: sessionId,
         language: language,
-        timestamp: new Date().toISOString(),
         source: 'website_chat',
-        user_agent: navigator.userAgent,
-        page_url: window.location.href
+        page_url: window.location.href,
       };
 
-      console.log('Sending to N8N:', requestData);
+      logger.debug('Sending to chatbot-relay:', requestData);
 
-      const response = await fetch('https://app.n8n-tech.cloud/webhook/triexpert-bot', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(requestData)
+      const { data, error } = await supabase.functions.invoke('chatbot-relay', {
+        body: requestData,
       });
 
-      console.log('Response status:', response.status);
-      console.log('Response headers:', response.headers);
-
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      if (error) {
+        throw new Error(error.message ?? 'Chat relay failed');
       }
 
-      const responseData = await response.text();
-      console.log('Raw N8N response:', responseData);
+      const responseData = typeof data === 'string' ? data : JSON.stringify(data);
+      logger.debug('Raw relay response:', responseData);
 
       let botResponseText = '';
 
       try {
         // Try to parse as JSON first
         const jsonData = JSON.parse(responseData);
-        console.log('Parsed JSON:', jsonData);
+        logger.debug('Parsed JSON:', jsonData);
         
         // Extract response from various possible formats
         botResponseText = jsonData.response || 
@@ -126,7 +130,7 @@ const Chatbot = () => {
           : 'Sorry, I couldn\'t generate a response. Please try again.';
       }
 
-      console.log('Final bot response:', botResponseText);
+      logger.debug('Final bot response:', botResponseText);
 
       const botMessage: Message = {
         id: `bot_${Date.now()}`,
@@ -135,10 +139,10 @@ const Chatbot = () => {
         timestamp: new Date()
       };
 
-      setMessages(prev => [...prev, botMessage]);
+      appendMessage(botMessage);
 
     } catch (error) {
-      console.error('Error sending message:', error);
+      logger.error('Error sending message:', error);
       
       const errorMessage: Message = {
         id: `bot_error_${Date.now()}`,
@@ -149,7 +153,7 @@ const Chatbot = () => {
         timestamp: new Date()
       };
 
-      setMessages(prev => [...prev, errorMessage]);
+      appendMessage(errorMessage);
     } finally {
       setIsLoading(false);
     }

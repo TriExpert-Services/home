@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Shield, Download, Eye, FileText, Calendar, User, Globe, CheckCircle, XCircle, Clock, ArrowLeft, Star, MessageSquare, Send } from 'lucide-react';
 import { supabase } from '../lib/supabase';
+import { logger } from '../lib/logger';
 
 interface VerificationPageProps {
   verificationToken: string;
@@ -112,7 +113,7 @@ const VerificationPage: React.FC<VerificationPageProps> = ({ verificationToken, 
       await logAccess('view');
 
     } catch (error) {
-      console.error('Verification error:', error);
+      logger.error('Verification error:', error);
       setError('Error validating verification link');
     } finally {
       setIsLoading(false);
@@ -132,7 +133,7 @@ const VerificationPage: React.FC<VerificationPageProps> = ({ verificationToken, 
         setAlreadyReviewed(eligibility.already_reviewed);
       }
     } catch (error) {
-      console.error('Error checking review eligibility:', error);
+      logger.error('Error checking review eligibility:', error);
     }
   };
 
@@ -172,7 +173,7 @@ const VerificationPage: React.FC<VerificationPageProps> = ({ verificationToken, 
       alert('Thank you for your review! It will be published after approval.');
 
     } catch (error) {
-      console.error('Error submitting review:', error);
+      logger.error('Error submitting review:', error);
       alert('Error submitting review. Please try again.');
     } finally {
       setIsSubmittingReview(false);
@@ -189,7 +190,7 @@ const VerificationPage: React.FC<VerificationPageProps> = ({ verificationToken, 
         p_downloaded_file: fileName || null
       });
     } catch (error) {
-      console.error('Error logging access:', error);
+      logger.error('Error logging access:', error);
     }
   };
 
