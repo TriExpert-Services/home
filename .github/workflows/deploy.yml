@@ -14,6 +14,10 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    # Pulls secrets from the `DEPLOY` environment so we can add
+    # required-reviewers / branch protection later without changing
+    # the workflow.
+    environment: DEPLOY
     steps:
       - name: Configure SSH
         env:
