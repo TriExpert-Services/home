@@ -5,6 +5,7 @@ import {
   CheckCircle, BarChart3, Activity, Loader
 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
+import { logger } from '../lib/logger';
 
 interface Client {
   phone_number: string;
@@ -71,7 +72,7 @@ const WhatsAppChatHistory: React.FC = () => {
         setError('No active n8n database configuration found. Please configure it in Settings.');
       }
     } catch (err) {
-      console.error('Error checking configuration:', err);
+      logger.error('Error checking configuration:', err);
       setError('Failed to check configuration');
     }
   };
@@ -110,7 +111,7 @@ const WhatsAppChatHistory: React.FC = () => {
       });
       setClients(data);
     } catch (err) {
-      console.error('Error loading clients:', err);
+      logger.error('Error loading clients:', err);
       setError(err.message || 'Failed to load clients');
     } finally {
       setIsLoading(false);
@@ -130,7 +131,7 @@ const WhatsAppChatHistory: React.FC = () => {
       });
       setMessages(data);
     } catch (err) {
-      console.error('Error loading conversation:', err);
+      logger.error('Error loading conversation:', err);
       setError(err.message || 'Failed to load conversation');
     } finally {
       setIsLoading(false);
@@ -150,7 +151,7 @@ const WhatsAppChatHistory: React.FC = () => {
       });
       setStatistics(data);
     } catch (err) {
-      console.error('Error loading statistics:', err);
+      logger.error('Error loading statistics:', err);
       setError(err.message || 'Failed to load statistics');
     } finally {
       setIsLoading(false);

@@ -5,6 +5,7 @@ import {
   FileText, Globe, Clock, Target
 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
+import { logger } from '../lib/logger';
 
 interface BlogPost {
   id: string;
@@ -111,7 +112,7 @@ const BlogManagement: React.FC = () => {
       setStats(statsData);
 
     } catch (error) {
-      console.error('Error loading blog data:', error);
+      logger.error('Error loading blog data:', error);
     } finally {
       setIsLoading(false);
     }
@@ -172,7 +173,7 @@ const BlogManagement: React.FC = () => {
         featured_image_url: postForm.featuredImage || null
       };
 
-      console.log('Saving post with data:', postData);
+      logger.debug('Saving post with data:', postData);
 
       if (editingPost) {
         // Update existing post
@@ -199,7 +200,7 @@ const BlogManagement: React.FC = () => {
       loadBlogData();
 
     } catch (error) {
-      console.error('Error saving post:', error);
+      logger.error('Error saving post:', error);
       alert('Error saving post');
     }
   };
@@ -215,12 +216,12 @@ const BlogManagement: React.FC = () => {
 
       if (error) throw error;
 
-      console.log('Post saved successfully');
+      logger.debug('Post saved successfully');
       loadBlogData();
       alert('Post deleted successfully!');
 
     } catch (error) {
-      console.error('Error deleting post:', error);
+      logger.error('Error deleting post:', error);
       alert(`Error deleting post: ${error.message}`);
     }
   };
@@ -266,7 +267,7 @@ const BlogManagement: React.FC = () => {
       loadBlogData();
 
     } catch (error) {
-      console.error('Error updating post status:', error);
+      logger.error('Error updating post status:', error);
       alert(`Error updating post status: ${error.message}`);
     }
   };

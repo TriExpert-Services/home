@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { MessageCircle, X, Send, User, Bot, Loader2 } from 'lucide-react';
 import { useLanguage } from '../contexts/LanguageContext';
+import { logger } from '../lib/logger';
 
 interface Message {
   id: string;
@@ -78,32 +79,42 @@ const Chatbot = () => {
         page_url: window.location.href
       };
 
-      console.log('Sending to N8N:', requestData);
+      logger.debug('Sending to N8N:', requestData);
 
-      const response = await fetch('https://app.n8n-tech.cloud/webhook/triexpert-bot', {
+      const webhookUrl = import.meta.env.VITE_N8N_CHAT_WEBHOOK_URL;
+      const webhookToken = import.meta.env.VITE_N8N_WEBHOOK_TOKEN;
+      if (!webhookUrl) {
+        throw new Error('Chat webhook is not configured');
+      }
+
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+      };
+      if (webhookToken) {
+        headers['X-Webhook-Token'] = webhookToken;
+      }
+
+      const response = await fetch(webhookUrl, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers,
         body: JSON.stringify(requestData)
       });
 
-      console.log('Response status:', response.status);
-      console.log('Response headers:', response.headers);
+      logger.debug('Response status:', response.status);
 
       if (!response.ok) {
         throw new Error(`HTTP ${response.status}: ${response.statusText}`);
       }
 
       const responseData = await response.text();
-      console.log('Raw N8N response:', responseData);
+      logger.debug('Raw N8N response:', responseData);
 
       let botResponseText = '';
 
       try {
         // Try to parse as JSON first
         const jsonData = JSON.parse(responseData);
-        console.log('Parsed JSON:', jsonData);
+        logger.debug('Parsed JSON:', jsonData);
         
         // Extract response from various possible formats
         botResponseText = jsonData.response || 
@@ -126,7 +137,7 @@ const Chatbot = () => {
           : 'Sorry, I couldn\'t generate a response. Please try again.';
       }
 
-      console.log('Final bot response:', botResponseText);
+      logger.debug('Final bot response:', botResponseText);
 
       const botMessage: Message = {
         id: `bot_${Date.now()}`,
@@ -138,7 +149,7 @@ const Chatbot = () => {
       setMessages(prev => [...prev, botMessage]);
 
     } catch (error) {
-      console.error('Error sending message:', error);
+      logger.error('Error sending message:', error);
       
       const errorMessage: Message = {
         id: `bot_error_${Date.now()}`,

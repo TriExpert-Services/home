@@ -7,6 +7,8 @@ import ProjectManagement from './ProjectManagement';
 import BlogManagement from './BlogManagement';
 import WhatsAppChatHistory from './WhatsAppChatHistory';
 import N8nConfiguration from './N8nConfiguration';
+import { logger } from '../lib/logger';
+import { ErrorBoundary } from './ErrorBoundary';
 
 interface TranslationRequest {
   id: string;
@@ -110,7 +112,7 @@ const AdminPanel: React.FC = () => {
       if (error) throw error;
       setTranslationRequests(data || []);
     } catch (error) {
-      console.error('Error loading translation requests:', error);
+      logger.error('Error loading translation requests:', error);
     } finally {
       setIsLoading(false);
     }
@@ -147,7 +149,7 @@ const AdminPanel: React.FC = () => {
         });
       }
     } catch (error) {
-      console.error('Error loading reviews:', error);
+      logger.error('Error loading reviews:', error);
     } finally {
       setIsLoading(false);
     }
@@ -172,7 +174,7 @@ const AdminPanel: React.FC = () => {
         .single();
 
       if (statsError) {
-        console.warn('Error loading leads stats:', statsError);
+        logger.warn('Error loading leads stats:', statsError);
         // Set default stats if view doesn't exist yet
         setLeadsStats({
           total_leads: leadsData?.length || 0,
@@ -187,7 +189,7 @@ const AdminPanel: React.FC = () => {
         setLeadsStats(statsData);
       }
     } catch (error) {
-      console.error('Error loading contact leads:', error);
+      logger.error('Error loading contact leads:', error);
     } finally {
       setIsLoading(false);
     }
@@ -206,7 +208,7 @@ const AdminPanel: React.FC = () => {
       loadTranslationRequests();
       alert(`Request status updated to ${newStatus}`);
     } catch (error) {
-      console.error('Error updating status:', error);
+      logger.error('Error updating status:', error);
       alert('Error updating request status');
     }
   };
@@ -228,7 +230,7 @@ const AdminPanel: React.FC = () => {
       loadReviews();
       alert(`Review ${approved ? 'approved' : 'rejected'} successfully`);
     } catch (error) {
-      console.error('Error updating review:', error);
+      logger.error('Error updating review:', error);
       alert('Error updating review status');
     }
   };
@@ -246,7 +248,7 @@ const AdminPanel: React.FC = () => {
       loadReviews();
       alert(`Review ${featured ? 'marked as featured' : 'removed from featured'}`);
     } catch (error) {
-      console.error('Error updating featured status:', error);
+      logger.error('Error updating featured status:', error);
       alert('Error updating featured status');
     }
   };
@@ -264,7 +266,7 @@ const AdminPanel: React.FC = () => {
       loadContactLeads();
       alert(`Lead status updated to ${newStatus}`);
     } catch (error) {
-      console.error('Error updating lead status:', error);
+      logger.error('Error updating lead status:', error);
       alert('Error updating lead status');
     }
   };
@@ -282,7 +284,7 @@ const AdminPanel: React.FC = () => {
       loadContactLeads();
       alert('Lead notes updated successfully');
     } catch (error) {
-      console.error('Error updating lead notes:', error);
+      logger.error('Error updating lead notes:', error);
       alert('Error updating lead notes');
     }
   };
@@ -489,6 +491,7 @@ const AdminPanel: React.FC = () => {
 
         {/* Main Content */}
         <div className="flex-1 p-8">
+          <ErrorBoundary key={activeTab} fallbackTitle={`The "${activeTab}" tab failed to load`}>
           {/* Overview Tab */}
           {activeTab === 'overview' && (
             <div>
@@ -1227,6 +1230,7 @@ const AdminPanel: React.FC = () => {
               </div>
             </div>
           )}
+          </ErrorBoundary>
         </div>
       </div>
     </div>

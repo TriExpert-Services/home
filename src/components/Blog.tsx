@@ -6,6 +6,7 @@ import {
 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useLanguage } from '../contexts/LanguageContext';
+import { logger } from '../lib/logger';
 
 const SANITIZE_CONFIG = {
   ALLOWED_TAGS: [
@@ -94,7 +95,7 @@ const Blog: React.FC<BlogProps> = ({ onBack }) => {
       if (error) throw error;
       setPosts(data || []);
     } catch (error) {
-      console.error('Error loading blog posts:', error);
+      logger.error('Error loading blog posts:', error);
     } finally {
       setIsLoading(false);
     }
@@ -154,7 +155,7 @@ const Blog: React.FC<BlogProps> = ({ onBack }) => {
       }
 
     } catch (error) {
-      console.error('Error toggling like:', error);
+      logger.error('Error toggling like:', error);
     }
   };
 
@@ -170,7 +171,7 @@ const Blog: React.FC<BlogProps> = ({ onBack }) => {
           : p
       ));
     } catch (error) {
-      console.error('Error incrementing view:', error);
+      logger.error('Error incrementing view:', error);
     }
 
     setSelectedPost(post);

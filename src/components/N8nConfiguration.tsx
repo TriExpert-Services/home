@@ -4,6 +4,7 @@ import {
   Eye, EyeOff, Info, Lock, Server, Key
 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
+import { logger } from '../lib/logger';
 
 interface ConfigData {
   host: string;
@@ -66,7 +67,7 @@ const N8nConfiguration: React.FC = () => {
         });
       }
     } catch (err) {
-      console.error('Error loading configuration:', err);
+      logger.error('Error loading configuration:', err);
     }
   };
 
@@ -139,7 +140,7 @@ const N8nConfiguration: React.FC = () => {
         });
       }
     } catch (err) {
-      console.error('Error testing connection:', err);
+      logger.error('Error testing connection:', err);
       setTestResult({
         success: false,
         message: err.message || 'Failed to test connection',
@@ -190,7 +191,7 @@ const N8nConfiguration: React.FC = () => {
         setSaveMessage(null);
       }, 3000);
     } catch (err) {
-      console.error('Error saving configuration:', err);
+      logger.error('Error saving configuration:', err);
       setSaveMessage({
         type: 'error',
         text: err.message || 'Failed to save configuration',

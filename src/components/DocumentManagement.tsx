@@ -2,6 +2,7 @@ import React, { useState, useRef } from 'react';
 import { Upload, Download, Eye, FileText, Check, X, Calendar, Star, AlertCircle, ExternalLink, Copy, CheckCircle } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import QRCodeGenerator from './QRCodeGenerator';
+import { logger } from '../lib/logger';
 
 interface DocumentManagementProps {
   requestId: string;
@@ -28,7 +29,7 @@ const DocumentManagement: React.FC<DocumentManagementProps> = ({
 
     setIsUploading(true);
     try {
-      console.log('Starting file upload process...', files.length, 'files');
+      logger.debug('Starting file upload process...', files.length, 'files');
       
       // Upload files one by one with better error handling
       const uploadedUrls: string[] = [];
@@ -37,7 +38,7 @@ const DocumentManagement: React.FC<DocumentManagementProps> = ({
         const file = files[i];
         const fileName = `translated_${requestId}_${Date.now()}_${i}_${file.name}`;
         
-        console.log(`Uploading file ${i + 1}/${files.length}:`, fileName, 'Size:', file.size, 'bytes');
+        logger.debug(`Uploading file ${i + 1}/${files.length}:`, fileName, 'Size:', file.size, 'bytes');
         
         try {
           const { data, error } = await supabase.storage
@@ -45,34 +46,34 @@ const DocumentManagement: React.FC<DocumentManagementProps> = ({
             .upload(fileName, file);
 
           if (error) {
-            console.error('Upload error for file:', fileName, error);
+            logger.error('Upload error for file:', fileName, error);
             throw new Error(`Failed to upload ${file.name}: ${error.message}`);
           }
           
-          console.log('File uploaded successfully:', data);
+          logger.debug('File uploaded successfully:', data);
 
           const { data: publicUrl } = supabase.storage
             .from('translated-documents')
             .getPublicUrl(fileName);
             
-          console.log('Public URL generated:', publicUrl.publicUrl);
+          logger.debug('Public URL generated:', publicUrl.publicUrl);
           uploadedUrls.push(publicUrl.publicUrl);
           
         } catch (fileError) {
-          console.error(`Error uploading file ${file.name}:`, fileError);
+          logger.error(`Error uploading file ${file.name}:`, fileError);
           throw fileError;
         }
       }
       
-      console.log('All files uploaded, URLs:', uploadedUrls);
+      logger.debug('All files uploaded, URLs:', uploadedUrls);
       
       // Prepare the updated file URLs array
       const currentUrls = requestData.translated_file_urls || [];
       const updatedUrls = [...currentUrls, ...uploadedUrls];
       
-      console.log('Current URLs in database:', currentUrls);
-      console.log('New URLs to add:', uploadedUrls);
-      console.log('Updated URLs array:', updatedUrls);
+      logger.debug('Current URLs in database:', currentUrls);
+      logger.debug('New URLs to add:', uploadedUrls);
+      logger.debug('Updated URLs array:', updatedUrls);
 
       // Try using the admin bypass function first
       try {
@@ -85,14 +86,14 @@ const DocumentManagement: React.FC<DocumentManagementProps> = ({
           });
 
         if (error) {
-          console.error('RPC function error:', error);
+          logger.error('RPC function error:', error);
           throw error;
         }
         
-        console.log('Database updated successfully via RPC function');
+        logger.debug('Database updated successfully via RPC function');
         
       } catch (rpcError) {
-        console.error('RPC function failed, trying direct update:', rpcError);
+        logger.error('RPC function failed, trying direct update:', rpcError);
         
         // Fallback to direct update
         const { error: updateError } = await supabase
@@ -108,18 +109,18 @@ const DocumentManagement: React.FC<DocumentManagementProps> = ({
           .eq('id', requestId);
 
         if (updateError) {
-          console.error('Direct update error:', updateError);
+          logger.error('Direct update error:', updateError);
           throw new Error(`Database update failed: ${updateError.message}`);
         }
         
-        console.log('Database updated successfully via direct update');
+        logger.debug('Database updated successfully via direct update');
       }
 
       onUpdate();
       alert(`${uploadedUrls.length} document(s) uploaded successfully!`);
 
     } catch (error) {
-      console.error('Error uploading files:', error);
+      logger.error('Error uploading files:', error);
       
       // More detailed error message
       let errorMessage = 'Error uploading files: ';
@@ -129,7 +130,7 @@ const DocumentManagement: React.FC<DocumentManagementProps> = ({
         errorMessage += 'Unknown error occurred';
       }
       
-      console.error('Final error details:', error);
+      logger.error('Final error details:', error);
       alert(errorMessage);
     } finally {
       setIsUploading(false);
@@ -163,7 +164,7 @@ const DocumentManagement: React.FC<DocumentManagementProps> = ({
       alert('Verification link generated successfully!');
 
     } catch (error) {
-      console.error('Error generating verification link:', error);
+      logger.error('Error generating verification link:', error);
       alert('Error generating verification link');
     }
   };
@@ -184,7 +185,7 @@ const DocumentManagement: React.FC<DocumentManagementProps> = ({
       alert('Translator data updated successfully!');
 
     } catch (error) {
-      console.error('Error updating translator data:', error);
+      logger.error('Error updating translator data:', error);
       alert('Error updating translator data');
     }
   };
@@ -196,7 +197,7 @@ const DocumentManagement: React.FC<DocumentManagementProps> = ({
       setLinkCopied(true);
       setTimeout(() => setLinkCopied(false), 2000);
     } catch (error) {
-      console.error('Error copying link:', error);
+      logger.error('Error copying link:', error);
     }
   };
 

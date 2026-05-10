@@ -2,6 +2,7 @@ import React from 'react';
 import { ArrowRight, Star, Users, Award, Play, MessageSquare } from 'lucide-react';
 import { useLanguage } from '../contexts/LanguageContext';
 import { supabase } from '../lib/supabase';
+import { logger } from '../lib/logger';
 
 const Hero = () => {
   const { t } = useLanguage();
@@ -37,7 +38,7 @@ const Hero = () => {
           }));
         }
       } catch (error) {
-        console.error('Error loading real stats:', error);
+        logger.error('Error loading real stats:', error);
         // Keep default values on error
       }
     };

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Star, Quote, ChevronLeft, ChevronRight, MessageSquare, Award } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useLanguage } from '../contexts/LanguageContext';
+import { logger } from '../lib/logger';
 
 interface Review {
   id: string;
@@ -47,7 +48,7 @@ const Testimonials = () => {
         setReviews(featuredReviews);
       }
     } catch (error) {
-      console.error('Error loading reviews:', error);
+      logger.error('Error loading reviews:', error);
     } finally {
       setIsLoading(false);
     }
