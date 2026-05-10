@@ -3,6 +3,7 @@ import { Upload, Download, Eye, FileText, Check, X, Calendar, Star, AlertCircle,
 import { supabase } from '../lib/supabase';
 import QRCodeGenerator from './QRCodeGenerator';
 import { logger } from '../lib/logger';
+import { useToast } from '../contexts/ToastContext';
 
 interface TranslationRequestRow {
   id: string;
@@ -27,11 +28,12 @@ interface DocumentManagementProps {
   onUpdate: () => void;
 }
 
-const DocumentManagement: React.FC<DocumentManagementProps> = ({ 
-  requestId, 
-  requestData, 
-  onUpdate 
+const DocumentManagement: React.FC<DocumentManagementProps> = ({
+  requestId,
+  requestData,
+  onUpdate
 }) => {
+  const toast = useToast();
   const [isUploading, setIsUploading] = useState(false);
   const [translatorNotes, setTranslatorNotes] = useState(requestData.translator_notes || '');
   const [qualityScore, setQualityScore] = useState(requestData.quality_score || 5);
@@ -92,63 +94,47 @@ const DocumentManagement: React.FC<DocumentManagementProps> = ({
       logger.debug('New URLs to add:', uploadedUrls);
       logger.debug('Updated URLs array:', updatedUrls);
 
-      // Try using the admin bypass function first
-      try {
-        const { data, error } = await supabase
-          .rpc('admin_update_translation_with_files', {
-            request_id: requestId,
-            file_urls: uploadedUrls,
-            notes: translatorNotes || null,
-            quality: qualityScore || null
-          });
+      // Direct update — RLS is_admin() policies (migration 20260507000002)
+      // already grant admins full access to translation_requests, so the
+      // previous RPC fallback is no longer needed. Use .select().single()
+      // to confirm the row actually persisted before claiming success.
+      const { data: updated, error: updateError } = await supabase
+        .from('translation_requests')
+        .update({
+          translated_file_urls: updatedUrls,
+          translator_notes: translatorNotes || null,
+          quality_score: qualityScore || null,
+          status: 'completed',
+          delivery_date: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', requestId)
+        .select('id, translated_file_urls')
+        .single();
 
-        if (error) {
-          logger.error('RPC function error:', error);
-          throw error;
-        }
-        
-        logger.debug('Database updated successfully via RPC function');
-        
-      } catch (rpcError) {
-        logger.error('RPC function failed, trying direct update:', rpcError);
-        
-        // Fallback to direct update
-        const { error: updateError } = await supabase
-          .from('translation_requests')
-          .update({
-            translated_file_urls: updatedUrls,
-            translator_notes: translatorNotes || null,
-            quality_score: qualityScore || null,
-            status: 'completed',
-            delivery_date: new Date().toISOString(),
-            updated_at: new Date().toISOString()
-          })
-          .eq('id', requestId);
-
-        if (updateError) {
-          logger.error('Direct update error:', updateError);
-          throw new Error(`Database update failed: ${updateError.message}`);
-        }
-        
-        logger.debug('Database updated successfully via direct update');
+      if (updateError) {
+        logger.error('Direct update error:', updateError);
+        throw new Error(`Database update failed: ${updateError.message}`);
+      }
+      if (!updated) {
+        throw new Error('Update returned no row — RLS may have rejected it');
       }
 
+      // Defense-in-depth: confirm the new URLs really landed on the row.
+      const persisted = (updated.translated_file_urls as string[] | null) ?? [];
+      const allLanded = uploadedUrls.every((u) => persisted.includes(u));
+      if (!allLanded) {
+        throw new Error('Files uploaded but not all URLs persisted to the row');
+      }
+
+      logger.debug('Database updated and verified', updated);
       onUpdate();
-      alert(`${uploadedUrls.length} document(s) uploaded successfully!`);
+      toast.success(`${uploadedUrls.length} document(s) uploaded`);
 
     } catch (error) {
       logger.error('Error uploading files:', error);
-      
-      // More detailed error message
-      let errorMessage = 'Error uploading files: ';
-      if (error instanceof Error) {
-        errorMessage += error.message;
-      } else {
-        errorMessage += 'Unknown error occurred';
-      }
-      
-      logger.error('Final error details:', error);
-      alert(errorMessage);
+      const msg = error instanceof Error ? error.message : 'Unknown error';
+      toast.error(`Error uploading files: ${msg}`);
     } finally {
       setIsUploading(false);
       // Reset file input

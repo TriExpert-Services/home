@@ -6,6 +6,7 @@ import {
 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { logger } from '../lib/logger';
+import { useToast } from '../contexts/ToastContext';
 
 interface Project {
   id: string;
@@ -61,6 +62,11 @@ interface Lead {
 }
 
 const ProjectManagement: React.FC = () => {
+  const toast = useToast();
+  // Local override for the progress slider while the user is dragging,
+  // so the UI stays responsive without firing a DB write per pixel.
+  const [progressDraft, setProgressDraft] = useState<Record<string, number>>({});
+  const [savingProgress, setSavingProgress] = useState<Set<string>>(new Set());
   const [projects, setProjects] = useState<Project[]>([]);
   const [stats, setStats] = useState<ProjectStats | null>(null);
   const [qualifiedLeads, setQualifiedLeads] = useState<Lead[]>([]);
@@ -169,23 +175,50 @@ const ProjectManagement: React.FC = () => {
     }
   };
 
-  const updateProjectProgress = async (projectId: string, newProgress: number) => {
+  const commitProjectProgress = async (projectId: string) => {
+    const draft = progressDraft[projectId];
+    if (draft === undefined) return;
+    if (savingProgress.has(projectId)) return;
+
+    // Coerce + clamp defensively in case the slider is replaced later.
+    const clean = Math.max(0, Math.min(100, Math.round(Number(draft) || 0)));
+
+    setSavingProgress((s) => new Set(s).add(projectId));
     try {
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from('projects')
-        .update({ 
-          progress_percentage: newProgress,
+        .update({
+          progress_percentage: clean,
           updated_at: new Date().toISOString()
         })
-        .eq('id', projectId);
+        .eq('id', projectId)
+        .select('id, progress_percentage')
+        .single();
 
       if (error) throw error;
+      if (!data || data.progress_percentage !== clean) {
+        throw new Error('Progress did not persist');
+      }
 
-      loadProjectsData();
-
+      // Optimistic local update + clear draft + sync from server.
+      setProjects((prev) =>
+        prev.map((p) => (p.id === projectId ? { ...p, progress_percentage: clean } : p))
+      );
+      setProgressDraft((d) => {
+        const next = { ...d };
+        delete next[projectId];
+        return next;
+      });
+      await loadProjectsData();
     } catch (error) {
       logger.error('Error updating project progress:', error);
-      alert('Error updating project progress');
+      toast.error('Error updating progress');
+    } finally {
+      setSavingProgress((s) => {
+        const next = new Set(s);
+        next.delete(projectId);
+        return next;
+      });
     }
   };
 
@@ -420,15 +453,31 @@ const ProjectManagement: React.FC = () => {
                           <div>
                             <div className="flex items-center justify-between mb-2">
                               <h5 className="font-medium text-white">Progress</h5>
-                              <span className="text-slate-300 text-sm">{project.progress_percentage}%</span>
+                              <span className="text-slate-300 text-sm">
+                                {progressDraft[project.id] ?? project.progress_percentage}%
+                                {savingProgress.has(project.id) && ' (saving…)'}
+                              </span>
                             </div>
                             <input
                               type="range"
                               min="0"
                               max="100"
-                              value={project.progress_percentage}
-                              onChange={(e) => updateProjectProgress(project.id, parseInt(e.target.value))}
-                              className="w-full h-2 bg-slate-600 rounded-lg appearance-none cursor-pointer slider"
+                              value={progressDraft[project.id] ?? project.progress_percentage}
+                              disabled={savingProgress.has(project.id)}
+                              onChange={(e) =>
+                                setProgressDraft((d) => ({
+                                  ...d,
+                                  [project.id]: parseInt(e.target.value, 10),
+                                }))
+                              }
+                              onMouseUp={() => commitProjectProgress(project.id)}
+                              onTouchEnd={() => commitProjectProgress(project.id)}
+                              onKeyUp={(e) => {
+                                if (e.key === 'ArrowLeft' || e.key === 'ArrowRight' || e.key === 'Home' || e.key === 'End') {
+                                  commitProjectProgress(project.id);
+                                }
+                              }}
+                              className="w-full h-2 bg-slate-600 rounded-lg appearance-none cursor-pointer slider disabled:opacity-50 disabled:cursor-wait"
                             />
                           </div>
                         </div>
