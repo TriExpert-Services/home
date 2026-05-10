@@ -1,0 +1,41 @@
+name: deploy
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch: {}
+
+# Never run two deploys in parallel.
+concurrency:
+  group: deploy-prod
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Configure SSH
+        env:
+          DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+          HETZNER_HOST: ${{ secrets.HETZNER_HOST }}
+        run: |
+          mkdir -p ~/.ssh && chmod 700 ~/.ssh
+          printf '%s\n' "$DEPLOY_SSH_KEY" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+          # Trust Hetzner's host key (Proxmox is reached through ProxyJump
+          # and is verified by ssh once accepted on Hetzner).
+          ssh-keyscan -t ed25519,rsa,ecdsa "$HETZNER_HOST" >> ~/.ssh/known_hosts
+
+      - name: Trigger deploy
+        env:
+          HETZNER_HOST: ${{ secrets.HETZNER_HOST }}
+          PROXMOX_HOST: ${{ secrets.PROXMOX_HOST }}
+          LXC_ID: ${{ secrets.LXC_ID }}
+        run: |
+          ssh -i ~/.ssh/id_ed25519 \
+              -o StrictHostKeyChecking=accept-new \
+              -o ConnectTimeout=10 \
+              -J "root@${HETZNER_HOST}" \
+              "root@${PROXMOX_HOST}" \
+              "pct exec ${LXC_ID} -- /usr/local/bin/triexpert-deploy"
