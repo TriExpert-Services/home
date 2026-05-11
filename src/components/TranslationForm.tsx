@@ -155,34 +155,41 @@ const TranslationForm = ({ onBack }: { onBack: () => void }) => {
       
       for (let i = 0; i < formData.files.length; i++) {
         const file = formData.files[i];
-        const fileName = `${Date.now()}_${file.name}`;
-        
-        try {
-          const { data, error } = await supabase.storage
-            .from('translation-files')
-            .upload(fileName, file);
+        // Sanitise the filename — paths with `/`, control chars or spaces tripped
+        // both storage's path validation and the public URL encoding. Keep only
+        // safe characters plus the original extension.
+        const safe = file.name
+          .replace(/[^a-zA-Z0-9._-]+/g, '_')
+          .replace(/^_+|_+$/g, '')
+          .slice(0, 80);
+        const fileName = `${Date.now()}_${i}_${safe || 'file'}`;
 
-          if (error) {
-            logger.error('Error uploading file:', error);
-            throw new Error(`Error uploading ${file.name}: ${error.message}`);
-          }
+        const { error } = await supabase.storage
+          .from('translation-files')
+          .upload(fileName, file, {
+            contentType: file.type || 'application/octet-stream',
+            upsert: false,
+          });
 
-          const { data: publicUrl } = supabase.storage
-            .from('translation-files')
-            .getPublicUrl(fileName);
-
-          fileUrls.push(publicUrl.publicUrl);
-        } catch (fileError) {
-          logger.error(`Failed to upload ${file.name}:`, fileError);
-          // Continue with other files, don't fail the entire upload
+        if (error) {
+          logger.error('Error uploading file:', error);
+          // Propagate upward so the form rejects the submission instead of
+          // pretending success with an empty file_urls array.
+          throw new Error(`Could not upload "${file.name}": ${error.message}`);
         }
+
+        const { data: publicUrl } = supabase.storage
+          .from('translation-files')
+          .getPublicUrl(fileName);
+
+        fileUrls.push(publicUrl.publicUrl);
       }
 
       return fileUrls;
     } catch (error) {
       logger.error('File upload failed:', error);
-      // Return empty array to continue with form submission
-      return [];
+      // Re-throw so handleSubmit can show a real error to the user.
+      throw error;
     }
   };
 
@@ -255,17 +262,23 @@ const TranslationForm = ({ onBack }: { onBack: () => void }) => {
     setIsSubmitting(true);
 
     try {
-      // Upload files first
+      // Upload files first. If the user attached any and the upload
+      // fails, we abort the whole submission instead of silently saving
+      // a row with file_urls=[] (the bug that left several requests
+      // with no attached documents).
       let fileUrls: string[] = [];
-      let uploadWarning = '';
-      
       try {
         fileUrls = await uploadFiles();
       } catch (uploadError) {
         logger.error('File upload failed:', uploadError);
-        uploadWarning = language === 'es' 
-          ? 'Los archivos no pudieron subirse, pero su solicitud fue enviada. Contacte con nosotros para enviar los archivos.'
-          : 'Files could not be uploaded, but your request was submitted. Please contact us to send the files.';
+        const msg = uploadError instanceof Error ? uploadError.message : 'Unknown error';
+        setSubmitError(
+          language === 'es'
+            ? `No se pudieron subir los archivos: ${msg}. Inténtalo de nuevo o quita los archivos para continuar sin ellos.`
+            : `Could not upload your files: ${msg}. Please try again or remove the files to continue without them.`
+        );
+        setIsSubmitting(false);
+        return;
       }
       
       // Prepare data for database
@@ -321,10 +334,7 @@ const TranslationForm = ({ onBack }: { onBack: () => void }) => {
         setIsSubmitted(true);
       }
 
-      // Show upload warning if files failed to upload
-      if (uploadWarning) {
-        logger.warn(uploadWarning);
-      }
+      // (Upload failures now abort the submission earlier; no warning path.)
 
       // Reset form
       setFormData({
