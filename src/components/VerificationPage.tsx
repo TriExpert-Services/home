@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { Shield, Download, Eye, FileText, Calendar, User, Globe, CheckCircle, XCircle, Clock, ArrowLeft, Star, MessageSquare, Send } from 'lucide-react';
 import { supabase } from '../lib/supabase';
+import { useLanguage } from '../contexts/LanguageContext';
+import { useToast } from '../contexts/ToastContext';
 import { logger } from '../lib/logger';
 
 interface VerificationPageProps {
@@ -63,6 +65,13 @@ const VerificationPage: React.FC<VerificationPageProps> = ({ verificationToken, 
   const [isSubmittingReview, setIsSubmittingReview] = useState(false);
   const [reviewSubmitted, setReviewSubmitted] = useState(false);
 
+  const { language } = useLanguage();
+  const toast = useToast();
+
+  // Compact bilingual helper: tx(spanish, english). The rest of the site is
+  // ES/EN; this page was previously English-only.
+  const tx = (es: string, en: string) => (language === 'es' ? es : en);
+
   useEffect(() => {
     verifyAndLoadData();
   }, [verificationToken]);
@@ -77,7 +86,7 @@ const VerificationPage: React.FC<VerificationPageProps> = ({ verificationToken, 
       if (verificationError) throw verificationError;
 
       if (!verificationResult || verificationResult.length === 0) {
-        setError('Invalid verification link');
+        setError(tx('Enlace de verificación inválido', 'Invalid verification link'));
         return;
       }
 
@@ -86,25 +95,30 @@ const VerificationPage: React.FC<VerificationPageProps> = ({ verificationToken, 
 
       if (!verification.is_valid) {
         if (new Date(verification.expires_at) < new Date()) {
-          setError('This verification link has expired');
+          setError(tx('Este enlace de verificación ha expirado', 'This verification link has expired'));
         } else if (verification.status !== 'completed') {
-          setError('Translation is not yet completed');
+          setError(tx('La traducción aún no está completada', 'Translation is not yet completed'));
         } else {
-          setError('Invalid verification link');
+          setError(tx('Enlace de verificación inválido', 'Invalid verification link'));
         }
         return;
       }
 
-      // Load full translation details
-      const { data: translationData, error: translationError } = await supabase
-        .from('translation_requests')
-        .select('*')
-        .eq('id', verification.request_id)
-        .single();
+      // Load full translation details via the SECURITY DEFINER RPC. A direct
+      // anonymous SELECT on translation_requests is blocked by RLS since the
+      // 2026-05-07 hardening, so we go through get_verification_details, which
+      // only returns rows for a valid (completed, non-expired) link.
+      const { data: detailRows, error: translationError } = await supabase
+        .rpc('get_verification_details', { link: verificationToken });
 
       if (translationError) throw translationError;
 
-      setTranslationDetails(translationData);
+      if (!detailRows || detailRows.length === 0) {
+        setError(tx('Los detalles de la traducción no están disponibles', 'Translation details are not available'));
+        return;
+      }
+
+      setTranslationDetails(detailRows[0]);
 
       // Check if user can leave a review
       await checkReviewEligibility();
@@ -114,7 +128,7 @@ const VerificationPage: React.FC<VerificationPageProps> = ({ verificationToken, 
 
     } catch (error) {
       logger.error('Verification error:', error);
-      setError('Error validating verification link');
+      setError(tx('Error al validar el enlace de verificación', 'Error validating verification link'));
     } finally {
       setIsLoading(false);
     }
@@ -139,7 +153,7 @@ const VerificationPage: React.FC<VerificationPageProps> = ({ verificationToken, 
 
   const submitReview = async () => {
     if (!reviewForm.comment.trim() || reviewForm.comment.length < 10) {
-      alert('Please provide a detailed comment (at least 10 characters)');
+      toast.error(tx('Por favor escribe un comentario detallado (mínimo 10 caracteres)', 'Please provide a detailed comment (at least 10 characters)'));
       return;
     }
 
@@ -170,11 +184,11 @@ const VerificationPage: React.FC<VerificationPageProps> = ({ verificationToken, 
       setAlreadyReviewed(true);
       
       // Show success message
-      alert('Thank you for your review! It will be published after approval.');
+      toast.success(tx('¡Gracias por tu reseña! Se publicará tras su aprobación.', 'Thank you for your review! It will be published after approval.'));
 
     } catch (error) {
       logger.error('Error submitting review:', error);
-      alert('Error submitting review. Please try again.');
+      toast.error(tx('Error al enviar la reseña. Inténtalo de nuevo.', 'Error submitting review. Please try again.'));
     } finally {
       setIsSubmittingReview(false);
     }
@@ -244,7 +258,7 @@ const VerificationPage: React.FC<VerificationPageProps> = ({ verificationToken, 
       <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900 flex items-center justify-center">
         <div className="text-center">
           <div className="w-16 h-16 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-white text-lg">Verifying translation...</p>
+          <p className="text-white text-lg">{tx('Verificando traducción...', 'Verifying translation...')}</p>
         </div>
       </div>
     );
@@ -259,15 +273,15 @@ const VerificationPage: React.FC<VerificationPageProps> = ({ verificationToken, 
             className="mb-6 flex items-center text-white/70 hover:text-white transition-colors mx-auto"
           >
             <ArrowLeft className="w-4 h-4 mr-2" />
-            Back to Site
+            {tx('Volver al sitio', 'Back to Site')}
           </button>
-          
+
           <div className="bg-white/10 backdrop-blur-xl rounded-2xl p-8 border border-red-500/20">
             <XCircle className="w-16 h-16 text-red-400 mx-auto mb-4" />
-            <h1 className="text-2xl font-bold text-white mb-4">Verification Failed</h1>
+            <h1 className="text-2xl font-bold text-white mb-4">{tx('Verificación fallida', 'Verification Failed')}</h1>
             <p className="text-red-300 mb-6">{error}</p>
             <div className="text-sm text-white/70">
-              <p>If you believe this is an error, please contact:</p>
+              <p>{tx('Si crees que esto es un error, contacta a:', 'If you believe this is an error, please contact:')}</p>
               <p className="mt-2">support@triexpertservice.com</p>
             </div>
           </div>
@@ -280,7 +294,7 @@ const VerificationPage: React.FC<VerificationPageProps> = ({ verificationToken, 
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900 flex items-center justify-center">
         <div className="text-center text-white">
-          <p>Loading translation details...</p>
+          <p>{tx('Cargando detalles de la traducción...', 'Loading translation details...')}</p>
         </div>
       </div>
     );
@@ -296,13 +310,13 @@ const VerificationPage: React.FC<VerificationPageProps> = ({ verificationToken, 
             className="flex items-center text-white/70 hover:text-white transition-colors"
           >
             <ArrowLeft className="w-4 h-4 mr-2" />
-            Back to Site
+            {tx('Volver al sitio', 'Back to Site')}
           </button>
           <div className="text-center">
             <div className="w-12 h-12 bg-gradient-to-br from-green-500 to-green-600 rounded-xl flex items-center justify-center mx-auto mb-2">
               <Shield className="w-6 h-6 text-white" />
             </div>
-            <h1 className="text-lg font-bold text-white">Verified Translation</h1>
+            <h1 className="text-lg font-bold text-white">{tx('Traducción Verificada', 'Verified Translation')}</h1>
           </div>
           <div></div>
         </div>
@@ -312,15 +326,15 @@ const VerificationPage: React.FC<VerificationPageProps> = ({ verificationToken, 
           <div className="flex items-center justify-center text-green-300 mb-4">
             <CheckCircle className="w-8 h-8 mr-3" />
             <div>
-              <h2 className="text-xl font-bold">Translation Verified</h2>
-              <p className="text-green-400">This is an official certified translation by TriExpert Services</p>
+              <h2 className="text-xl font-bold">{tx('Traducción Verificada', 'Translation Verified')}</h2>
+              <p className="text-green-400">{tx('Esta es una traducción oficial certificada por TriExpert Services', 'This is an official certified translation by TriExpert Services')}</p>
             </div>
           </div>
-          
+
           {verificationData && (
             <div className="text-center text-sm text-green-400">
               <Clock className="w-4 h-4 inline mr-1" />
-              Valid until {new Date(verificationData.expires_at).toLocaleDateString()}
+              {tx('Válido hasta', 'Valid until')} {new Date(verificationData.expires_at).toLocaleDateString()}
             </div>
           )}
         </div>
@@ -331,29 +345,29 @@ const VerificationPage: React.FC<VerificationPageProps> = ({ verificationToken, 
             <div className="bg-white/10 backdrop-blur-xl rounded-2xl p-6 border border-white/20 h-fit">
               <h3 className="text-lg font-bold text-white mb-4 flex items-center">
                 <User className="w-5 h-5 mr-2 text-blue-400" />
-                Client Information
+                {tx('Información del Cliente', 'Client Information')}
               </h3>
-              
+
               <div className="space-y-3 text-sm">
                 <div>
-                  <label className="text-white/70">Full Name:</label>
+                  <label className="text-white/70">{tx('Nombre completo:', 'Full Name:')}</label>
                   <p className="text-white font-medium">{translationDetails.full_name}</p>
                 </div>
                 <div>
-                  <label className="text-white/70">Email:</label>
+                  <label className="text-white/70">{tx('Correo:', 'Email:')}</label>
                   <p className="text-white font-medium">{translationDetails.email}</p>
                 </div>
                 <div>
-                  <label className="text-white/70">Phone:</label>
+                  <label className="text-white/70">{tx('Teléfono:', 'Phone:')}</label>
                   <p className="text-white font-medium">{translationDetails.phone}</p>
                 </div>
               </div>
             </div>
 
             {/* Translation Quality */}
-            {translationDetails.quality_score && (
+            {translationDetails.quality_score ? (
               <div className="bg-white/10 backdrop-blur-xl rounded-2xl p-6 border border-white/20 mt-6">
-                <h3 className="text-lg font-bold text-white mb-4">Quality Assurance</h3>
+                <h3 className="text-lg font-bold text-white mb-4">{tx('Garantía de Calidad', 'Quality Assurance')}</h3>
                 <div className="flex items-center space-x-2 mb-3">
                   <div className="flex items-center">
                     {[1, 2, 3, 4, 5].map((star) => (
@@ -372,10 +386,10 @@ const VerificationPage: React.FC<VerificationPageProps> = ({ verificationToken, 
                   </span>
                 </div>
                 <p className="text-white/70 text-sm">
-                  Professional quality certified translation
+                  {tx('Traducción certificada de calidad profesional', 'Professional quality certified translation')}
                 </p>
               </div>
-            )}
+            ) : null}
           </div>
 
           {/* Translation Details */}
@@ -383,26 +397,26 @@ const VerificationPage: React.FC<VerificationPageProps> = ({ verificationToken, 
             <div className="bg-white/10 backdrop-blur-xl rounded-2xl p-6 border border-white/20 mb-6">
               <h3 className="text-lg font-bold text-white mb-6 flex items-center">
                 <FileText className="w-5 h-5 mr-2 text-purple-400" />
-                Translation Details
+                {tx('Detalles de la Traducción', 'Translation Details')}
               </h3>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-sm">
                 <div>
-                  <label className="text-white/70">Document Type:</label>
+                  <label className="text-white/70">{tx('Tipo de documento:', 'Document Type:')}</label>
                   <p className="text-white font-medium capitalize">
                     {translationDetails.document_type.replace('_', ' ')}
                   </p>
                 </div>
-                
+
                 <div>
-                  <label className="text-white/70">Page Count:</label>
-                  <p className="text-white font-medium">{translationDetails.page_count} pages</p>
+                  <label className="text-white/70">{tx('Número de hojas:', 'Page Count:')}</label>
+                  <p className="text-white font-medium">{translationDetails.page_count} {tx('hojas', 'pages')}</p>
                 </div>
 
                 <div>
                   <label className="text-white/70 flex items-center">
                     <Globe className="w-4 h-4 mr-1" />
-                    Languages:
+                    {tx('Idiomas:', 'Languages:')}
                   </label>
                   <p className="text-white font-medium">
                     {getLanguageName(translationDetails.source_language)} → {getLanguageName(translationDetails.target_language)}
@@ -410,29 +424,29 @@ const VerificationPage: React.FC<VerificationPageProps> = ({ verificationToken, 
                 </div>
 
                 <div>
-                  <label className="text-white/70">Format:</label>
+                  <label className="text-white/70">{tx('Formato:', 'Format:')}</label>
                   <p className="text-white font-medium capitalize">{translationDetails.desired_format}</p>
                 </div>
 
                 <div>
-                  <label className="text-white/70">Processing Time:</label>
+                  <label className="text-white/70">{tx('Tiempo de procesamiento:', 'Processing Time:')}</label>
                   <p className="text-white font-medium capitalize">{translationDetails.processing_time}</p>
                 </div>
 
                 <div>
-                  <label className="text-white/70">Total Cost:</label>
+                  <label className="text-white/70">{tx('Costo total:', 'Total Cost:')}</label>
                   <p className="text-white font-medium">{formatCurrency(translationDetails.total_cost)}</p>
                 </div>
 
                 <div>
-                  <label className="text-white/70">Requested:</label>
+                  <label className="text-white/70">{tx('Solicitado:', 'Requested:')}</label>
                   <p className="text-white font-medium">{formatDate(translationDetails.created_at)}</p>
                 </div>
 
                 <div>
-                  <label className="text-white/70">Delivered:</label>
+                  <label className="text-white/70">{tx('Entregado:', 'Delivered:')}</label>
                   <p className="text-white font-medium">
-                    {translationDetails.delivery_date ? formatDate(translationDetails.delivery_date) : 'In progress'}
+                    {translationDetails.delivery_date ? formatDate(translationDetails.delivery_date) : tx('En progreso', 'In progress')}
                   </p>
                 </div>
               </div>
@@ -440,7 +454,7 @@ const VerificationPage: React.FC<VerificationPageProps> = ({ verificationToken, 
               {/* Translator Notes */}
               {translationDetails.translator_notes && (
                 <div className="mt-6 pt-6 border-t border-white/20">
-                  <label className="text-white/70 block mb-2">Translator Notes:</label>
+                  <label className="text-white/70 block mb-2">{tx('Notas del traductor:', 'Translator Notes:')}</label>
                   <div className="bg-slate-800/50 rounded-lg p-4">
                     <p className="text-white text-sm leading-relaxed">
                       {translationDetails.translator_notes}
@@ -454,7 +468,7 @@ const VerificationPage: React.FC<VerificationPageProps> = ({ verificationToken, 
             <div className="bg-white/10 backdrop-blur-xl rounded-2xl p-6 border border-white/20">
               <h3 className="text-lg font-bold text-white mb-6 flex items-center">
                 <Download className="w-5 h-5 mr-2 text-green-400" />
-                Translated Documents
+                {tx('Documentos Traducidos', 'Translated Documents')}
               </h3>
 
               {translationDetails.translated_file_urls && translationDetails.translated_file_urls.length > 0 ? (
@@ -469,7 +483,7 @@ const VerificationPage: React.FC<VerificationPageProps> = ({ verificationToken, 
                           <FileText className="w-5 h-5 text-blue-400" />
                           <div>
                             <p className="text-white font-medium">{displayName}</p>
-                            <p className="text-white/60 text-sm">Certified Translation</p>
+                            <p className="text-white/60 text-sm">{tx('Traducción Certificada', 'Certified Translation')}</p>
                           </div>
                         </div>
                         <div className="flex items-center space-x-2">
@@ -478,14 +492,14 @@ const VerificationPage: React.FC<VerificationPageProps> = ({ verificationToken, 
                             className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-colors flex items-center space-x-2"
                           >
                             <Eye className="w-4 h-4" />
-                            <span>View</span>
+                            <span>{tx('Ver', 'View')}</span>
                           </button>
                           <button
                             onClick={() => downloadFile(url, displayName)}
                             className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg transition-colors flex items-center space-x-2"
                           >
                             <Download className="w-4 h-4" />
-                            <span>Download</span>
+                            <span>{tx('Descargar', 'Download')}</span>
                           </button>
                         </div>
                       </div>
@@ -495,7 +509,7 @@ const VerificationPage: React.FC<VerificationPageProps> = ({ verificationToken, 
               ) : (
                 <div className="text-center py-8">
                   <FileText className="w-12 h-12 text-slate-400 mx-auto mb-4" />
-                  <p className="text-white/70">No translated documents available yet</p>
+                  <p className="text-white/70">{tx('Aún no hay documentos traducidos disponibles', 'No translated documents available yet')}</p>
                 </div>
               )}
             </div>
@@ -509,8 +523,8 @@ const VerificationPage: React.FC<VerificationPageProps> = ({ verificationToken, 
               <div className="flex items-center justify-center mb-4">
                 <MessageSquare className="w-8 h-8 text-yellow-400 mr-3" />
                 <div>
-                  <h2 className="text-xl font-bold text-white">Share Your Experience</h2>
-                  <p className="text-yellow-300">Help others by leaving a review of our service</p>
+                  <h2 className="text-xl font-bold text-white">{tx('Comparte tu Experiencia', 'Share Your Experience')}</h2>
+                  <p className="text-yellow-300">{tx('Ayuda a otros dejando una reseña de nuestro servicio', 'Help others by leaving a review of our service')}</p>
                 </div>
               </div>
               
@@ -520,14 +534,14 @@ const VerificationPage: React.FC<VerificationPageProps> = ({ verificationToken, 
                   className="bg-gradient-to-r from-yellow-500 to-orange-500 text-white px-6 py-3 rounded-lg font-semibold hover:from-yellow-600 hover:to-orange-600 transition-all transform hover:scale-105 flex items-center space-x-2 mx-auto"
                 >
                   <Star className="w-5 h-5" />
-                  <span>Leave a Review</span>
+                  <span>{tx('Dejar una Reseña', 'Leave a Review')}</span>
                 </button>
               ) : (
                 <div className="bg-white/10 backdrop-blur-xl rounded-xl p-6 text-left">
                   <div className="space-y-6">
                     {/* Rating */}
                     <div>
-                      <label className="block text-white font-medium mb-2">Rating *</label>
+                      <label className="block text-white font-medium mb-2">{tx('Calificación', 'Rating')} *</label>
                       <div className="flex items-center space-x-1 mb-2">
                         {[1, 2, 3, 4, 5].map((star) => (
                           <button
@@ -542,39 +556,39 @@ const VerificationPage: React.FC<VerificationPageProps> = ({ verificationToken, 
                         ))}
                       </div>
                       <p className="text-sm text-white/70">
-                        {reviewForm.rating === 5 && 'Excellent'}
-                        {reviewForm.rating === 4 && 'Very Good'}
-                        {reviewForm.rating === 3 && 'Good'}
-                        {reviewForm.rating === 2 && 'Fair'}
-                        {reviewForm.rating === 1 && 'Poor'}
+                        {reviewForm.rating === 5 && tx('Excelente', 'Excellent')}
+                        {reviewForm.rating === 4 && tx('Muy bueno', 'Very Good')}
+                        {reviewForm.rating === 3 && tx('Bueno', 'Good')}
+                        {reviewForm.rating === 2 && tx('Regular', 'Fair')}
+                        {reviewForm.rating === 1 && tx('Malo', 'Poor')}
                       </p>
                     </div>
 
                     {/* Title */}
                     <div>
-                      <label className="block text-white font-medium mb-2">Review Title (optional)</label>
+                      <label className="block text-white font-medium mb-2">{tx('Título de la reseña (opcional)', 'Review Title (optional)')}</label>
                       <input
                         type="text"
                         value={reviewForm.title}
                         onChange={(e) => setReviewForm({ ...reviewForm, title: e.target.value })}
-                        placeholder="Brief title for your review"
+                        placeholder={tx('Un título breve para tu reseña', 'Brief title for your review')}
                         className="w-full bg-slate-800/50 border border-slate-600 rounded-lg px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-yellow-500"
                       />
                     </div>
 
                     {/* Comment */}
                     <div>
-                      <label className="block text-white font-medium mb-2">Your Review *</label>
+                      <label className="block text-white font-medium mb-2">{tx('Tu Reseña', 'Your Review')} *</label>
                       <textarea
                         value={reviewForm.comment}
                         onChange={(e) => setReviewForm({ ...reviewForm, comment: e.target.value })}
-                        placeholder="Share your experience with our translation service..."
+                        placeholder={tx('Comparte tu experiencia con nuestro servicio de traducción...', 'Share your experience with our translation service...')}
                         rows={4}
                         className="w-full bg-slate-800/50 border border-slate-600 rounded-lg px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-yellow-500 resize-none"
                         required
                       />
                       <p className="text-sm text-white/70 mt-1">
-                        {reviewForm.comment.length}/500 characters (minimum 10)
+                        {reviewForm.comment.length}/500 {tx('caracteres (mínimo 10)', 'characters (minimum 10)')}
                       </p>
                     </div>
 
@@ -589,7 +603,7 @@ const VerificationPage: React.FC<VerificationPageProps> = ({ verificationToken, 
                           className="w-4 h-4 text-yellow-500 bg-slate-800 border-slate-600 rounded focus:ring-yellow-500"
                         />
                         <label htmlFor="showFullName" className="ml-2 text-white text-sm">
-                          Show my full name (otherwise only first name and last initial)
+                          {tx('Mostrar mi nombre completo (de lo contrario, solo el nombre y la inicial del apellido)', 'Show my full name (otherwise only first name and last initial)')}
                         </label>
                       </div>
                       
@@ -602,7 +616,7 @@ const VerificationPage: React.FC<VerificationPageProps> = ({ verificationToken, 
                           className="w-4 h-4 text-yellow-500 bg-slate-800 border-slate-600 rounded focus:ring-yellow-500"
                         />
                         <label htmlFor="showServiceDetails" className="ml-2 text-white text-sm">
-                          Show service details in review
+                          {tx('Mostrar detalles del servicio en la reseña', 'Show service details in review')}
                         </label>
                       </div>
                     </div>
@@ -615,14 +629,14 @@ const VerificationPage: React.FC<VerificationPageProps> = ({ verificationToken, 
                         className="bg-gradient-to-r from-yellow-500 to-orange-500 text-white px-6 py-2 rounded-lg font-semibold hover:from-yellow-600 hover:to-orange-600 disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center space-x-2"
                       >
                         <Send className="w-4 h-4" />
-                        <span>{isSubmittingReview ? 'Submitting...' : 'Submit Review'}</span>
+                        <span>{isSubmittingReview ? tx('Enviando...', 'Submitting...') : tx('Enviar Reseña', 'Submit Review')}</span>
                       </button>
-                      
+
                       <button
                         onClick={() => setShowReviewForm(false)}
                         className="bg-slate-600 hover:bg-slate-700 text-white px-6 py-2 rounded-lg font-semibold transition-colors"
                       >
-                        Cancel
+                        {tx('Cancelar', 'Cancel')}
                       </button>
                     </div>
                   </div>
@@ -638,8 +652,8 @@ const VerificationPage: React.FC<VerificationPageProps> = ({ verificationToken, 
             <div className="flex items-center justify-center text-green-300">
               <CheckCircle className="w-6 h-6 mr-3" />
               <div>
-                <p className="font-medium">Thank you for your review!</p>
-                <p className="text-green-400 text-sm">Your feedback helps us improve our service</p>
+                <p className="font-medium">{tx('¡Gracias por tu reseña!', 'Thank you for your review!')}</p>
+                <p className="text-green-400 text-sm">{tx('Tus comentarios nos ayudan a mejorar nuestro servicio', 'Your feedback helps us improve our service')}</p>
               </div>
             </div>
           </div>
@@ -652,10 +666,10 @@ const VerificationPage: React.FC<VerificationPageProps> = ({ verificationToken, 
             <span className="text-white font-semibold">TriExpert Services</span>
           </div>
           <p className="text-white/60 text-sm">
-            Professional certified translations • Tampa, Florida
+            {tx('Traducciones profesionales certificadas • Tampa, Florida', 'Professional certified translations • Tampa, Florida')}
           </p>
           <p className="text-white/40 text-xs mt-1">
-            This verification page confirms the authenticity of your translated documents
+            {tx('Esta página de verificación confirma la autenticidad de tus documentos traducidos', 'This verification page confirms the authenticity of your translated documents')}
           </p>
         </div>
       </div>

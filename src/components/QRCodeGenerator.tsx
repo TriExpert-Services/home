@@ -1,6 +1,7 @@
 import React, { useState, useRef } from 'react';
 import { QrCode, Download, Copy, CheckCircle, Eye, ExternalLink, Share } from 'lucide-react';
 import QRCodeLib from 'qrcode';
+import { useToast } from '../contexts/ToastContext';
 import { logger } from '../lib/logger';
 
 interface QRCodeGeneratorProps {
@@ -18,6 +19,7 @@ const QRCodeGenerator: React.FC<QRCodeGeneratorProps> = ({
   const [isGenerating, setIsGenerating] = useState(false);
   const [linkCopied, setLinkCopied] = useState(false);
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const toast = useToast();
 
   const fullVerificationUrl = `${window.location.origin}/verify/${verificationLink}`;
 
@@ -37,7 +39,7 @@ const QRCodeGenerator: React.FC<QRCodeGeneratorProps> = ({
       setQrCodeDataUrl(qrDataUrl);
     } catch (error) {
       logger.error('Error generating QR code:', error);
-      alert('Error generating QR code');
+      toast.error('Error generating QR code');
     } finally {
       setIsGenerating(false);
     }
@@ -67,7 +69,7 @@ const QRCodeGenerator: React.FC<QRCodeGeneratorProps> = ({
       link.click();
     } catch (error) {
       logger.error('Error downloading QR code:', error);
-      alert('Error downloading QR code');
+      toast.error('Error downloading QR code');
     }
   };
 

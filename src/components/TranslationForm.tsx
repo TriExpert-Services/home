@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { ArrowLeft, User, Globe, Upload, Clock, FileText, Calendar, CreditCard, Loader2, CheckCircle, AlertCircle, Zap, Languages } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useLanguage } from '../contexts/LanguageContext';
+import { useToast } from '../contexts/ToastContext';
 import { logger } from '../lib/logger';
 
 interface FormData {
@@ -25,7 +26,8 @@ interface FormErrors {
 
 const TranslationForm = ({ onBack }: { onBack: () => void }) => {
   const { t, language, setLanguage } = useLanguage();
-  
+  const toast = useToast();
+
   const [formData, setFormData] = useState<FormData>({
     fullName: '',
     phone: '',
@@ -46,6 +48,7 @@ const TranslationForm = ({ onBack }: { onBack: () => void }) => {
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [isWaitingPayment, setIsWaitingPayment] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
+  const [uploadWarning, setUploadWarning] = useState<string | null>(null);
 
   const languages = [
     { code: 'es', name: language === 'es' ? 'Español' : 'Spanish' },
@@ -144,46 +147,46 @@ const TranslationForm = ({ onBack }: { onBack: () => void }) => {
     const processingMultiplier = processingTimes.find(p => p.value === formData.processingTime)?.cost || 1;
     const formatMultiplier = formData.desiredFormat === 'both' ? 1.2 : 1;
     
-    return Math.round(pages * baseRate * processingMultiplier * formatMultiplier);
+    // Use Math.ceil to match the canonical server-side price
+    // (calculate_translation_cost uses CEIL). Math.round here would diverge
+    // by $1 on fractional per-page prices (e.g. urgent 1.35x).
+    return Math.ceil(pages * baseRate * processingMultiplier * formatMultiplier);
   };
 
-  const uploadFiles = async (): Promise<string[]> => {
-    if (!formData.files || formData.files.length === 0) return [];
-
-    try {
-      const fileUrls: string[] = [];
-      
-      for (let i = 0; i < formData.files.length; i++) {
-        const file = formData.files[i];
-        const fileName = `${Date.now()}_${file.name}`;
-        
-        try {
-          const { data, error } = await supabase.storage
-            .from('translation-files')
-            .upload(fileName, file);
-
-          if (error) {
-            logger.error('Error uploading file:', error);
-            throw new Error(`Error uploading ${file.name}: ${error.message}`);
-          }
-
-          const { data: publicUrl } = supabase.storage
-            .from('translation-files')
-            .getPublicUrl(fileName);
-
-          fileUrls.push(publicUrl.publicUrl);
-        } catch (fileError) {
-          logger.error(`Failed to upload ${file.name}:`, fileError);
-          // Continue with other files, don't fail the entire upload
-        }
-      }
-
-      return fileUrls;
-    } catch (error) {
-      logger.error('File upload failed:', error);
-      // Return empty array to continue with form submission
-      return [];
+  const uploadFiles = async (): Promise<{ urls: string[]; failed: string[] }> => {
+    if (!formData.files || formData.files.length === 0) {
+      return { urls: [], failed: [] };
     }
+
+    const urls: string[] = [];
+    const failed: string[] = [];
+
+    for (let i = 0; i < formData.files.length; i++) {
+      const file = formData.files[i];
+      // Sanitize the storage key: timestamp + index (avoids same-ms
+      // collisions) + a filename stripped of spaces/unsafe characters.
+      const safeName = file.name.replace(/[^\w.\-]+/g, '_');
+      const fileName = `${Date.now()}_${i}_${safeName}`;
+
+      try {
+        const { error } = await supabase.storage
+          .from('translation-files')
+          .upload(fileName, file);
+
+        if (error) throw error;
+
+        const { data: publicUrl } = supabase.storage
+          .from('translation-files')
+          .getPublicUrl(fileName);
+
+        urls.push(publicUrl.publicUrl);
+      } catch (fileError) {
+        logger.error(`Failed to upload ${file.name}:`, fileError);
+        failed.push(file.name);
+      }
+    }
+
+    return { urls, failed };
   };
 
   const sendToN8N = async (requestData: Record<string, unknown>): Promise<unknown> => {
@@ -255,19 +258,18 @@ const TranslationForm = ({ onBack }: { onBack: () => void }) => {
     setIsSubmitting(true);
 
     try {
-      // Upload files first
-      let fileUrls: string[] = [];
-      let uploadWarning = '';
-      
-      try {
-        fileUrls = await uploadFiles();
-      } catch (uploadError) {
-        logger.error('File upload failed:', uploadError);
-        uploadWarning = language === 'es' 
-          ? 'Los archivos no pudieron subirse, pero su solicitud fue enviada. Contacte con nosotros para enviar los archivos.'
-          : 'Files could not be uploaded, but your request was submitted. Please contact us to send the files.';
+      // Upload files first. uploadFiles never throws — it reports which files
+      // failed so we can warn the user instead of silently dropping them.
+      const { urls: fileUrls, failed: failedUploads } = await uploadFiles();
+
+      if (failedUploads.length > 0) {
+        const warning = language === 'es'
+          ? `No se pudieron subir ${failedUploads.length} archivo(s): ${failedUploads.join(', ')}. Tu solicitud se envió de todos modos; contáctanos para reenviarlos.`
+          : `${failedUploads.length} file(s) could not be uploaded: ${failedUploads.join(', ')}. Your request was still submitted; please contact us to resend them.`;
+        setUploadWarning(warning);
+        toast.warning(warning);
       }
-      
+
       // Prepare data for database
       const requestData = {
         full_name: formData.fullName,
@@ -297,9 +299,12 @@ const TranslationForm = ({ onBack }: { onBack: () => void }) => {
         throw new Error(`Database error: ${error.message}`);
       }
 
-      // Prepare data for N8N
+      // Prepare data for N8N. Use the server-recomputed total_cost (the
+      // BEFORE-INSERT trigger is the canonical price) so the Stripe link,
+      // the DB, and the on-screen quote can never disagree.
       const n8nData = {
         ...requestData,
+        total_cost: data.total_cost ?? requestData.total_cost,
         request_id: data.id,
         created_at: data.created_at
       };
@@ -319,11 +324,6 @@ const TranslationForm = ({ onBack }: { onBack: () => void }) => {
       } else {
         // Show success message if no payment link received
         setIsSubmitted(true);
-      }
-
-      // Show upload warning if files failed to upload
-      if (uploadWarning) {
-        logger.warn(uploadWarning);
       }
 
       // Reset form
@@ -435,11 +435,17 @@ const TranslationForm = ({ onBack }: { onBack: () => void }) => {
               {language === 'es' ? '¡Solicitud Enviada!' : 'Request Submitted!'}
             </h2>
             <p className="text-slate-300 mb-6">
-              {language === 'es' 
-                ? 'Hemos recibido su solicitud de traducción. Le contactaremos pronto con los detalles del pago y cronograma.' 
+              {language === 'es'
+                ? 'Hemos recibido su solicitud de traducción. Le contactaremos pronto con los detalles del pago y cronograma.'
                 : 'We have received your translation request. We will contact you soon with payment details and timeline.'
               }
             </p>
+            {uploadWarning && (
+              <div className="bg-amber-500/10 border border-amber-500/30 rounded-xl p-4 mb-6 text-amber-300 flex items-start text-left">
+                <AlertCircle className="w-5 h-5 mr-3 flex-shrink-0 mt-0.5" />
+                <span className="text-sm">{uploadWarning}</span>
+              </div>
+            )}
             <button
               onClick={onBack}
               className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white px-8 py-3 rounded-xl hover:from-blue-700 hover:to-indigo-700 transition-all"
@@ -747,7 +753,7 @@ const TranslationForm = ({ onBack }: { onBack: () => void }) => {
 
               <div className="md:col-span-2">
                 <label className="block text-sm font-medium text-slate-300 mb-2">
-                  {language === 'es' ? 'Fecha de solicitud' : 'Request Date'}
+                  {language === 'es' ? 'Fecha de solicitud' : 'Request Date'} *
                 </label>
                 <input
                   type="date"
@@ -785,7 +791,7 @@ const TranslationForm = ({ onBack }: { onBack: () => void }) => {
                     name="files"
                     onChange={handleChange}
                     multiple
-                    accept=".pdf,.doc,.docx,.txt,.jpg,.png,.gif,.svg"
+                    accept=".pdf,.doc,.docx,.ppt,.pptx,.xls,.xlsx,.txt,.jpg,.jpeg,.png,.gif,.svg,.webp"
                     className="hidden"
                     id="fileInput"
                   />
