@@ -791,7 +791,7 @@ const TranslationForm = ({ onBack }: { onBack: () => void }) => {
                     name="files"
                     onChange={handleChange}
                     multiple
-                    accept=".pdf,.doc,.docx,.ppt,.pptx,.xls,.xlsx,.txt,.jpg,.jpeg,.png,.gif,.svg,.webp"
+                    accept=".pdf,.doc,.docx,.ppt,.pptx,.xls,.xlsx,.txt,.jpg,.jpeg,.png,.gif,.svg,.webp,.heic,.heif,.tif,.tiff,.bmp"
                     className="hidden"
                     id="fileInput"
                   />
@@ -804,9 +804,9 @@ const TranslationForm = ({ onBack }: { onBack: () => void }) => {
                       }
                     </p>
                     <p className="text-sm text-slate-400">
-                      {language === 'es' 
-                        ? 'Formatos aceptados: PDF, Word, PowerPoint, Excel, TXT, JPG, PNG, GIF, SVG, WebP' 
-                        : 'Accepted formats: PDF, Word, PowerPoint, Excel, TXT, JPG, PNG, GIF, SVG, WebP'
+                      {language === 'es'
+                        ? 'Formatos aceptados: PDF, Word, PowerPoint, Excel, TXT, JPG, PNG, GIF, SVG, WebP, HEIC (foto de iPhone), TIFF, BMP'
+                        : 'Accepted formats: PDF, Word, PowerPoint, Excel, TXT, JPG, PNG, GIF, SVG, WebP, HEIC (iPhone photo), TIFF, BMP'
                       }
                     </p>
                   </label>
