@@ -3,6 +3,17 @@ import { createClient } from '@supabase/supabase-js'
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
 const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY
 
+// These are inlined by Vite at build time (see the Dockerfile build ARGs). If
+// either is empty the whole app would otherwise fail with the cryptic
+// "supabaseUrl is required" thrown deep inside the SDK. Fail loudly and clearly
+// instead so a misconfigured build is obvious in the console.
+if (!supabaseUrl || !supabaseKey) {
+  const msg =
+    'Missing VITE_SUPABASE_URL / VITE_SUPABASE_ANON_KEY at build time — the deploy was built without Supabase env vars.'
+  console.error(msg)
+  throw new Error(msg)
+}
+
 export const supabase = createClient(supabaseUrl, supabaseKey)
 
 export type Database = {
