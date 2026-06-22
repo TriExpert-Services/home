@@ -3,6 +3,7 @@ import { Phone, Mail, MapPin, Clock, Send, CheckCircle, AlertCircle } from 'luci
 import { supabase } from '../lib/supabase';
 import { useLanguage } from '../contexts/LanguageContext';
 import { logger } from '../lib/logger';
+import { trackEvent } from '../lib/analytics';
 import { Button, Card, Input, Textarea } from './primitives';
 
 interface FormData {
@@ -132,6 +133,8 @@ const Contact = () => {
         language,
         created_at: new Date().toISOString(),
       });
+
+      trackEvent('Contact Submitted', { service: formData.service || 'unspecified' });
 
       setIsSubmitted(true);
       setFormData({ name: '', email: '', phone: '', company: '', service: '', message: '' });

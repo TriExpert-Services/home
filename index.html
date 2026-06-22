@@ -13,6 +13,32 @@
     <link rel="preconnect" href="https://supabase.triexpertservice.com" crossorigin />
     <link rel="dns-prefetch" href="https://supabase.triexpertservice.com" />
 
+    <!-- Privacy-friendly, cookieless analytics (self-hosted Plausible). Pageviews
+         are sent manually because this is a custom pushState SPA router; we patch
+         the History API + popstate and de-duplicate by path so each real
+         navigation counts exactly once. -->
+    <script async src="https://plausible.triexpertservice.com/js/pa-6pSL3cqgJIGmLc4jrP70q.js"></script>
+    <script>
+      window.plausible = window.plausible || function () { (plausible.q = plausible.q || []).push(arguments) };
+      plausible.init = plausible.init || function (i) { plausible.o = i || {} };
+      plausible.init({ autoCapturePageviews: false });
+      (function () {
+        var last = '';
+        function pv() {
+          var p = location.pathname + location.search;
+          if (p === last) return;
+          last = p;
+          window.plausible('pageview');
+        }
+        var ps = history.pushState;
+        history.pushState = function () { ps.apply(this, arguments); pv(); };
+        var rs = history.replaceState;
+        history.replaceState = function () { rs.apply(this, arguments); pv(); };
+        window.addEventListener('popstate', pv);
+        pv();
+      })();
+    </script>
+
     <title>Certified Document Translations in Tampa, FL — USCIS-Accepted | TriExpert Services</title>
     <meta
       name="description"
