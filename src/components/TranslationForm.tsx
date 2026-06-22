@@ -331,8 +331,11 @@ const TranslationForm = ({ onBack }: { onBack: () => void }) => {
       if (paymentUrl) {
         // Last client-side signal before the off-site Stripe handoff.
         trackEvent('Payment Redirect');
-        // Redirect to Stripe payment
-        redirectToStripe(paymentUrl);
+        // Tag the checkout with the order id so Stripe's
+        // checkout.session.completed carries client_reference_id = order id,
+        // letting the payments webhook mark THIS translation_requests row paid.
+        const sep = paymentUrl.includes('?') ? '&' : '?';
+        redirectToStripe(`${paymentUrl}${sep}client_reference_id=${encodeURIComponent(data.id)}`);
       } else {
         // Show success message if no payment link received
         setIsSubmitted(true);
