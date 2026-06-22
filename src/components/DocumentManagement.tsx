@@ -35,11 +35,13 @@ const DocumentManagement: React.FC<DocumentManagementProps> = ({
 }) => {
   const toast = useToast();
   const [isUploading, setIsUploading] = useState(false);
+  const [isUploadingOriginals, setIsUploadingOriginals] = useState(false);
   const [translatorNotes, setTranslatorNotes] = useState(requestData.translator_notes || '');
   const [qualityScore, setQualityScore] = useState(requestData.quality_score || 5);
   const [verificationLink, setVerificationLink] = useState(requestData.verification_link || '');
   const [linkCopied, setLinkCopied] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const originalInputRef = useRef<HTMLInputElement>(null);
   const translatedFiles = requestData.translated_file_urls || [];
   const originalFiles = requestData.file_urls || [];
 
@@ -140,6 +142,77 @@ const DocumentManagement: React.FC<DocumentManagementProps> = ({
       // Reset file input
       if (fileInputRef.current) {
         fileInputRef.current.value = '';
+      }
+    }
+  };
+
+  // Admin upload of the CLIENT'S ORIGINAL documents (file_urls). Used when the
+  // client sent the originals out-of-band (e.g. WhatsApp) instead of through
+  // the public form. Mirrors uploadTranslatedDocuments but targets the
+  // translation-files bucket and appends to file_urls (does not touch status).
+  const uploadOriginalDocuments = async (files: FileList) => {
+    if (!files.length) return;
+
+    setIsUploadingOriginals(true);
+    try {
+      const uploadedUrls: string[] = [];
+
+      for (let i = 0; i < files.length; i++) {
+        const file = files[i];
+        const safeName = file.name.replace(/[^\w.\-]+/g, '_');
+        const fileName = `original_${requestId}_${Date.now()}_${i}_${safeName}`;
+
+        const { error } = await supabase.storage
+          .from('translation-files')
+          .upload(fileName, file);
+
+        if (error) {
+          throw new Error(`Failed to upload ${file.name}: ${error.message}`);
+        }
+
+        const { data: publicUrl } = supabase.storage
+          .from('translation-files')
+          .getPublicUrl(fileName);
+
+        uploadedUrls.push(publicUrl.publicUrl);
+      }
+
+      const currentUrls = requestData.file_urls || [];
+      const updatedUrls = [...currentUrls, ...uploadedUrls];
+
+      const { data: updated, error: updateError } = await supabase
+        .from('translation_requests')
+        .update({
+          file_urls: updatedUrls,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', requestId)
+        .select('id, file_urls')
+        .single();
+
+      if (updateError) {
+        throw new Error(`Database update failed: ${updateError.message}`);
+      }
+      if (!updated) {
+        throw new Error('Update returned no row — RLS may have rejected it');
+      }
+
+      const persisted = (updated.file_urls as string[] | null) ?? [];
+      const allLanded = uploadedUrls.every((u) => persisted.includes(u));
+      if (!allLanded) {
+        throw new Error('Files uploaded but not all URLs persisted to the row');
+      }
+
+      onUpdate();
+      toast.success(`${uploadedUrls.length} original document(s) uploaded`);
+    } catch (error) {
+      logger.error('Error uploading original files:', error);
+      const msg = error instanceof Error ? error.message : 'Unknown error';
+      toast.error(`Error uploading originals: ${msg}`);
+    } finally {
+      setIsUploadingOriginals(false);
+      if (originalInputRef.current) {
+        originalInputRef.current.value = '';
       }
     }
   };
@@ -274,6 +347,30 @@ const DocumentManagement: React.FC<DocumentManagementProps> = ({
             <p className="text-slate-500 text-sm">Client may have submitted request without files</p>
           </div>
         )}
+
+        {/* Admin upload of the client's originals — e.g. when the client sent
+            them via WhatsApp instead of through the form. */}
+        <input
+          ref={originalInputRef}
+          type="file"
+          multiple
+          accept=".pdf,.doc,.docx,.ppt,.pptx,.xls,.xlsx,.txt,.jpg,.jpeg,.png,.gif,.svg,.webp,.heic,.heif,.tif,.tiff,.bmp"
+          onChange={(e) => e.target.files && uploadOriginalDocuments(e.target.files)}
+          className="hidden"
+        />
+        <button
+          onClick={() => originalInputRef.current?.click()}
+          disabled={isUploadingOriginals}
+          className="mt-4 w-full border-2 border-dashed border-slate-600 hover:border-orange-500 rounded-xl p-4 text-center transition-colors disabled:opacity-50"
+        >
+          <Upload className="w-6 h-6 text-orange-400 mx-auto mb-1" />
+          <p className="text-white text-sm">
+            {isUploadingOriginals ? 'Uploading...' : "Upload client's original documents"}
+          </p>
+          <p className="text-slate-400 text-xs">
+            Use this if the client sent the files by WhatsApp/email
+          </p>
+        </button>
       </div>
 
       {/* Upload Section */}
