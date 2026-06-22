@@ -2,6 +2,12 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
         xmlns:xhtml="http://www.w3.org/1999/xhtml">
 
+  <!-- Only real, crawlable routes are listed. Homepage-anchor URLs
+       (/#servicios, /#contacto, /#about) are fragments of the home page, not
+       separate documents, and /privacy /terms /cookies are not real routes yet
+       (they open via an in-app event and never change the pathname). They will
+       be added back as real URLs once prerendering + real routes land. -->
+
   <url>
     <loc>https://triexpertservice.com/</loc>
     <changefreq>weekly</changefreq>
@@ -21,42 +27,6 @@
     <loc>https://triexpertservice.com/blog</loc>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
-  </url>
-
-  <url>
-    <loc>https://triexpertservice.com/#servicios</loc>
-    <changefreq>monthly</changefreq>
-    <priority>0.8</priority>
-  </url>
-
-  <url>
-    <loc>https://triexpertservice.com/#contacto</loc>
-    <changefreq>monthly</changefreq>
-    <priority>0.7</priority>
-  </url>
-
-  <url>
-    <loc>https://triexpertservice.com/#about</loc>
-    <changefreq>monthly</changefreq>
-    <priority>0.6</priority>
-  </url>
-
-  <url>
-    <loc>https://triexpertservice.com/privacy</loc>
-    <changefreq>yearly</changefreq>
-    <priority>0.3</priority>
-  </url>
-
-  <url>
-    <loc>https://triexpertservice.com/terms</loc>
-    <changefreq>yearly</changefreq>
-    <priority>0.3</priority>
-  </url>
-
-  <url>
-    <loc>https://triexpertservice.com/cookies</loc>
-    <changefreq>yearly</changefreq>
-    <priority>0.3</priority>
   </url>
 
 </urlset>
