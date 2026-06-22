@@ -4,50 +4,55 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="theme-color" content="#0f172a" />
-    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
 
     <!-- Performance: open the connection to Supabase before the JS bundle parses,
          saving ~100 ms on the first API call (Hero stats, Testimonials, etc.). -->
     <link rel="preconnect" href="https://supabase.triexpertservice.com" crossorigin />
     <link rel="dns-prefetch" href="https://supabase.triexpertservice.com" />
 
-    <title>TriExpert Services — Professional Technology Solutions</title>
+    <title>Certified Document Translations in Tampa, FL — USCIS-Accepted | TriExpert Services</title>
     <meta
       name="description"
-      content="TriExpert Services delivers managed IT, cloud infrastructure, certified translations, and bespoke automation for businesses across the US and Latin America."
+      content="Certified, USCIS-accepted document translations in Tampa, Florida — birth & marriage certificates, diplomas, transcripts and legal documents, English ⇄ Spanish, with fast turnaround. TriExpert Services also offers managed IT, cloud and automation."
     />
     <link rel="canonical" href="https://triexpertservice.com/" />
 
     <!-- Hreflang: declare both languages so Google can return the right one in
-         each market. The actual language switch is still client-side (URL ?lang=es),
-         but with the alternate links + Spanish-aware sitemap, ES queries can rank. -->
+         each market. NOTE: ES currently resolves client-side (?lang=es); the
+         prerendered /es/ variant is planned so this annotation is honored. -->
     <link rel="alternate" hreflang="en" href="https://triexpertservice.com/" />
     <link rel="alternate" hreflang="es" href="https://triexpertservice.com/?lang=es" />
     <link rel="alternate" hreflang="x-default" href="https://triexpertservice.com/" />
 
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content="TriExpert Services" />
-    <meta property="og:title" content="TriExpert Services — Professional Technology Solutions" />
+    <meta property="og:title" content="Certified Translations in Tampa, FL — USCIS-Accepted | TriExpert Services" />
     <meta
       property="og:description"
-      content="Managed IT, cloud, certified translations, and automation built around your business."
+      content="Certified, USCIS-accepted document translations (English ⇄ Spanish) in Tampa, Florida — fast, professional, and officially accepted."
     />
     <meta property="og:url" content="https://triexpertservice.com/" />
     <meta property="og:image" content="https://triexpertservice.com/og-cover.png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
     <meta property="og:locale" content="en_US" />
     <meta property="og:locale:alternate" content="es_ES" />
 
     <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:title" content="TriExpert Services" />
+    <meta name="twitter:title" content="Certified Translations in Tampa, FL — USCIS-Accepted" />
     <meta
       name="twitter:description"
-      content="Managed IT, cloud, certified translations, and automation built around your business."
+      content="Certified, USCIS-accepted document translations (English ⇄ Spanish) in Tampa, Florida."
     />
     <meta name="twitter:image" content="https://triexpertservice.com/og-cover.png" />
 
-    <!-- Structured data for rich snippets in search results. The Organization
-         block lets Google show our logo + social links; the Service block lets
-         translation queries surface us in service-specific cards. -->
+    <!-- Structured data. Organization (brand/logo/social) + ProfessionalService
+         (LocalBusiness with real NAP, hours and area for Tampa local-pack
+         eligibility) + the two services. AggregateRating will be injected from
+         get_review_stats() once prerendering lands (do not hardcode a rating). -->
     <script type="application/ld+json">
       {
         "@context": "https://schema.org",
@@ -57,10 +62,60 @@
             "@id": "https://triexpertservice.com/#organization",
             "name": "TriExpert Services",
             "url": "https://triexpertservice.com/",
-            "logo": "https://triexpertservice.com/og-cover.png",
-            "description": "Managed IT, cloud infrastructure, certified document translations, and bespoke automation for businesses across the US and Latin America.",
-            "areaServed": ["US", "ES", "MX", "AR", "CO", "VE", "CL", "PE"],
-            "sameAs": []
+            "logo": "https://triexpertservice.com/logo.png",
+            "description": "Certified document translations (USCIS-accepted) plus managed IT, cloud infrastructure and automation, based in Tampa, Florida.",
+            "sameAs": [
+              "https://facebook.com/triexpertservices",
+              "https://twitter.com/triexpertservices",
+              "https://linkedin.com/company/triexpertservices",
+              "https://instagram.com/triexpertservices"
+            ]
+          },
+          {
+            "@type": "ProfessionalService",
+            "@id": "https://triexpertservice.com/#localbusiness",
+            "name": "TriExpert Services",
+            "image": "https://triexpertservice.com/og-cover.png",
+            "logo": "https://triexpertservice.com/logo.png",
+            "url": "https://triexpertservice.com/",
+            "telephone": "+18137108860",
+            "email": "support@triexpertservice.com",
+            "priceRange": "$$",
+            "parentOrganization": { "@id": "https://triexpertservice.com/#organization" },
+            "address": {
+              "@type": "PostalAddress",
+              "streetAddress": "2800 E 113th Ave, Apt 120",
+              "addressLocality": "Tampa",
+              "addressRegion": "FL",
+              "postalCode": "33612",
+              "addressCountry": "US"
+            },
+            "areaServed": [
+              { "@type": "City", "name": "Tampa" },
+              { "@type": "AdministrativeArea", "name": "Hillsborough County" },
+              { "@type": "State", "name": "Florida" },
+              "US", "MX", "AR", "CO", "VE", "CL", "PE", "ES"
+            ],
+            "openingHoursSpecification": [
+              {
+                "@type": "OpeningHoursSpecification",
+                "dayOfWeek": ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"],
+                "opens": "09:00",
+                "closes": "18:00"
+              },
+              {
+                "@type": "OpeningHoursSpecification",
+                "dayOfWeek": "Saturday",
+                "opens": "10:00",
+                "closes": "14:00"
+              }
+            ],
+            "sameAs": [
+              "https://facebook.com/triexpertservices",
+              "https://twitter.com/triexpertservices",
+              "https://linkedin.com/company/triexpertservices",
+              "https://instagram.com/triexpertservices"
+            ]
           },
           {
             "@type": "WebSite",
@@ -73,8 +128,8 @@
           {
             "@type": "Service",
             "name": "Certified Document Translations",
-            "provider": { "@id": "https://triexpertservice.com/#organization" },
-            "serviceType": "Translation",
+            "provider": { "@id": "https://triexpertservice.com/#localbusiness" },
+            "serviceType": "Certified translation (USCIS-accepted)",
             "areaServed": ["US", "ES", "MX", "AR", "CO", "VE", "CL", "PE"],
             "offers": {
               "@type": "Offer",
