@@ -3,6 +3,7 @@ import { ArrowLeft, User, Globe, Upload, Clock, FileText, Calendar, CreditCard, 
 import { supabase } from '../lib/supabase';
 import { useLanguage } from '../contexts/LanguageContext';
 import { useToast } from '../contexts/ToastContext';
+import { trackEvent } from '../lib/analytics';
 import { logger } from '../lib/logger';
 
 interface FormData {
@@ -268,6 +269,7 @@ const TranslationForm = ({ onBack }: { onBack: () => void }) => {
           : `${failedUploads.length} file(s) could not be uploaded: ${failedUploads.join(', ')}. Your request was still submitted; please contact us to resend them.`;
         setUploadWarning(warning);
         toast.warning(warning);
+        trackEvent('File Upload Failed', { count: failedUploads.length });
       }
 
       // Prepare data for database
@@ -299,6 +301,14 @@ const TranslationForm = ({ onBack }: { onBack: () => void }) => {
         throw new Error(`Database error: ${error.message}`);
       }
 
+      // Conversion: a paid-intent quote was created (server-canonical price).
+      trackEvent('Quote Submitted', {
+        document_type: formData.documentType,
+        processing_time: formData.processingTime,
+        page_count: parseInt(formData.pageCount) || 0,
+        value: Number(data.total_cost ?? requestData.total_cost) || 0,
+      });
+
       // Prepare data for N8N. Use the server-recomputed total_cost (the
       // BEFORE-INSERT trigger is the canonical price) so the Stripe link,
       // the DB, and the on-screen quote can never disagree.
@@ -319,6 +329,8 @@ const TranslationForm = ({ onBack }: { onBack: () => void }) => {
       setIsWaitingPayment(false);
 
       if (paymentUrl) {
+        // Last client-side signal before the off-site Stripe handoff.
+        trackEvent('Payment Redirect');
         // Redirect to Stripe payment
         redirectToStripe(paymentUrl);
       } else {
